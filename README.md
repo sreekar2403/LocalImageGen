@@ -21,9 +21,19 @@ Local AI image generation pipeline that uses Ollama to convert simple ideas into
 ## Installation
 
 1. Clone or download this repository.
-2. Install the required Python dependencies:
+2. Create and activate a project virtual environment (PowerShell):
+   ```powershell
+   py -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
+3. Install the required Python dependencies into that environment:
    ```bash
    pip install -r requirements.txt
+   ```
+
+   If PowerShell execution policy prevents activation, run the interpreter directly:
+   ```powershell
+   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
 
 ## Configuration
@@ -41,6 +51,11 @@ Run the main script to generate an image:
 
 ```bash
 python vision_model.py
+```
+
+On Windows, make sure the project environment is active first, or run:
+```powershell
+.\.venv\Scripts\python.exe .\vision_model.py
 ```
 
 1. Enter your simple prompt when prompted.
