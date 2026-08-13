@@ -9,11 +9,18 @@ dependencies = [
     "diffusers>=0.39.0",
     "ollama>=0.6.2",
     "pydantic-settings>=2.0.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
     "sentencepiece>=0.2.2",
     "structlog>=24.0.0",
     "torch>=2.13.0",
     "transformers>=5.14.1",
+    "typer[all]>=0.12.0",
 ]
+
+[project.scripts]
+localimagegen = "localimagegen.cli:app"
 
 [tool.uv]
 package = false
