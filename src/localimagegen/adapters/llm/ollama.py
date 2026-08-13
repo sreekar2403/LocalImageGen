@@ -13,6 +13,7 @@ the optional :class:`~localimagegen.core.ports.MemoryManagerPort`.
 from __future__ import annotations
 
 import subprocess
+from typing import Any
 
 import ollama
 
@@ -138,10 +139,12 @@ class OllamaAdapter:
         back to the raw text.
         """
         style_value = style.value if isinstance(style, PromptStyle) else str(style)
-        system_prompt = SYSTEM_PROMPTS.get(
-            style_value,
-            SYSTEM_PROMPTS[PromptStyle.FLUX.value],
-        )
+        if style_value not in SYSTEM_PROMPTS:
+            valid = ", ".join(SYSTEM_PROMPTS.keys())
+            raise ValueError(
+                f"Unsupported prompt style '{style_value}'. Valid styles: {valid}"
+            )
+        system_prompt = SYSTEM_PROMPTS[style_value]
 
         try:
             response = self._client.chat(
@@ -170,6 +173,29 @@ class OllamaAdapter:
 
         self._offload()
         return Prompt(text=prompt.text, enhanced=enhanced_text.strip())
+
+    def list_models(self) -> list[dict[str, Any]]:
+        """Return metadata about the models available in the local Ollama server.
+
+        Each returned dictionary contains ``name``, ``size`` (bytes) and
+        ``modified_at`` keys. If the server cannot be reached an empty list is
+        returned so callers can fail gracefully.
+        """
+        try:
+            response = self._client.list()
+        except (ollama.ResponseError, ollama.RequestError, ConnectionError, OSError) as exc:
+            self._logger.warning("ollama_list_failed", error=str(exc))
+            return []
+
+        models = response.models if hasattr(response, "models") else response.get("models", [])
+        return [
+            {
+                "name": getattr(model, "model", None) or model.get("model", ""),
+                "size": getattr(model, "size", None) or model.get("size", 0),
+                "modified_at": getattr(model, "modified_at", None) or model.get("modified_at", ""),
+            }
+            for model in models
+        ]
 
     def _offload(self) -> None:
         """Stop the Ollama model and notify the memory manager."""

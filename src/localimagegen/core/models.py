@@ -56,7 +56,10 @@ class GenerationMetadata(BaseModel):
     """Metadata describing how and when an image was generated."""
 
     model: str = Field(..., description="Diffusion model identifier used.")
-    prompt: str = Field(..., description="The effective prompt used for generation.")
+    prompt: Optional[str] = Field(
+        default=None,
+        description="The effective prompt used for generation. None for model-level metadata.",
+    )
     params: GenerationParams = Field(..., description="Parameters used for generation.")
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

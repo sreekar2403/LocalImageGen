@@ -27,6 +27,7 @@ class BasePipeline(ABC):
         style: PromptStyle = PromptStyle.FLUX,
         params: GenerationParams | None = None,
         output_name: str | None = None,
+        enhance: bool = True,
     ) -> Path:
         """Execute the full generation pipeline.
 
@@ -37,6 +38,7 @@ class BasePipeline(ABC):
                 If ``None``, sensible defaults are used.
             output_name: Optional base filename (without extension) for the
                 saved image. Auto-generated if omitted.
+            enhance: Whether to run prompt enhancement via the LLM.
 
         Returns:
             Path to the saved image file.
