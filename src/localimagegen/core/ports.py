@@ -3,13 +3,13 @@
 Ports are the contracts that infrastructure adapters must satisfy. They are
 defined in the domain layer and depend only on the domain models, keeping the
 core free of any infrastructure knowledge. Concrete implementations (e.g. an
-Ollama-backed LLM adapter or a diffusers-backed diffusion adapter) will be
-provided in later phases.
+Ollama-backed LLM adapter or a diffusers-backed diffusion adapter) are provided
+in the ``adapters`` package.
 """
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Any, Callable, Protocol, runtime_checkable
 
 from localimagegen.core.models import (
     GeneratedImage,
@@ -50,4 +50,40 @@ class StoragePort(Protocol):
 
     def save(self, image: GeneratedImage, name: str) -> str:
         """Persist an image and return the location (path/URI) it was saved to."""
+        ...
+
+
+@runtime_checkable
+class MemoryManagerPort(Protocol):
+    """Contract for coordinating GPU/CPU memory across model adapters.
+
+    Adapters register the models they load together with an optional callback
+    that performs the actual offload (e.g. moving a diffusers pipeline back to
+    CPU). The manager tracks device locations, exposes usage statistics, and
+    can trigger garbage collection / CUDA cache release.
+    """
+
+    def register(
+        self,
+        name: str,
+        device: str,
+        offload: Callable[[], None] | None = None,
+    ) -> None:
+        """Track a loaded model and how to offload it."""
+        ...
+
+    def offload(self, name: str) -> None:
+        """Move a tracked model back to CPU and free its GPU memory."""
+        ...
+
+    def offload_all(self) -> None:
+        """Offload every tracked model."""
+        ...
+
+    def stats(self) -> dict[str, Any]:
+        """Return current memory usage statistics."""
+        ...
+
+    def cleanup(self) -> None:
+        """Run garbage collection and release cached GPU memory."""
         ...
