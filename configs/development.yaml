@@ -1,4 +1,0 @@
-# Development overrides
-log_level: "DEBUG"
-device: "cpu"
-num_inference_steps: 6
