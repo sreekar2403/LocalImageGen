@@ -4,3 +4,13 @@ transformers
 accelerate
 ollama
 sentencepiece
+pillow
+
+# API / harness
+fastapi
+uvicorn[standard]
+mcp
+
+# Optional quantization (falls back to bf16 if unavailable)
+torchao
+bitsandbytes
