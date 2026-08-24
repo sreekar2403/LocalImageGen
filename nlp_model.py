@@ -1,58 +1,31 @@
-import os
-import gc
-import subprocess
+"""Back-compat shim over `app/backends/enhance.py`.
 
-# [optional] Force Ollama to run on CPU to avoid GPU memory pressure
-os.environ["OLLAMA_GPU"] = "0"
+Two bugs from the original are fixed by delegating:
 
-import ollama
-import torch
+1. The style menu printed numbered options but looked the *number* up as a dict
+   key, so it always silently fell through to "flux". `resolve_style()` now
+   accepts either the number or the name.
+2. `os.environ["OLLAMA_GPU"] = "0"` plus a `subprocess` call to `ollama stop`
+   did nothing useful -- Ollama is a separate server, and that is not a real
+   Ollama variable. VRAM is now controlled with `options={"num_gpu": 0}` and
+   `keep_alive=0` on the chat call itself.
+"""
 
-from config import ollama_model
-from utils import SYSTEM_PROMPTS
+from __future__ import annotations
 
-def stop_ollama_model(ollama_model):
-    try:
-        subprocess.run(
-            ["ollama", "stop", ollama_model],
-            check=True
-        )
+from app.backends.enhance import enhance_prompt, resolve_style
+from app.prompts import SYSTEM_PROMPTS
 
-        print(f"{ollama_model} unloaded from memory")
+__all__ = ["generate_prompt", "enhance_prompt", "resolve_style", "SYSTEM_PROMPTS"]
 
-    except subprocess.CalledProcessError:
-        print("Could not stop model")
 
-def generate_prompt(user_prompt):
-    for _, key in enumerate(SYSTEM_PROMPTS.keys(), start=1):
-        print(f"[{_}] : {key}")
-    option_chose = input("Enter option: ")
-    print(SYSTEM_PROMPTS.get(option_chose, SYSTEM_PROMPTS["flux"]))
-    response = ollama.chat(
-        model=ollama_model,
-        messages=[
-            {
-                'role': 'system',
-                'content': SYSTEM_PROMPTS.get(
-                    option_chose,
-                    SYSTEM_PROMPTS["flux"]
-                )
-            },
-            {
-                'role': 'user',
-                'content': user_prompt
-            }
-        ]
-    )
-    try:
-        print(f"GPU Memory used: {torch.cuda.memory_allocated() / 1024**2} MB")
-        stop_ollama_model(ollama_model)
-        print("ollama model offloaded")
-        print(f"GPU Memory freed: {torch.cuda.memory_allocated() / 1024**2} MB")
-        
-        gc.collect()
-        torch.cuda.empty_cache()
-    except Exception:
-        raise Exception("Ollama model not stopped")
-    
-    return response['message']['content']
+def generate_prompt(user_prompt: str, style: str | None = None) -> str:
+    """Enhance a prompt. Prompts interactively for a style only if not given."""
+    if style is None:
+        names = list(SYSTEM_PROMPTS)
+        print("Prompt styles:")
+        for i, name in enumerate(names, 1):
+            print(f"  [{i}]: {name}")
+        style = input("Enter option (number or name): ").strip()
+
+    return enhance_prompt(user_prompt, style)["prompt"]

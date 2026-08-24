@@ -222,3 +222,6 @@ images/
 
 AGENTS.md
 opencode.json
+# LocalGen generated artifacts
+bench_results/
+*.raster.png

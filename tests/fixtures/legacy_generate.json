@@ -1,0 +1,7 @@
+{
+  "prompt": "A bold blog hero poster: the NVIDIA symbol rendered as a luminous emerald-green glyph floating at centre, with the logos of Qwen, Meta, prisml-ml and DeepSeek arranged around it on a dark technical backdrop, subtle circuit tracery, dramatic rim lighting, high contrast, editorial poster composition",
+  "platform": "default",
+  "num_inference_steps": 4,
+  "guidance_scale": 3.5,
+  "seed": 42
+}
