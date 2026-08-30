@@ -94,6 +94,12 @@ class ImageRequest(BaseModel):
     style: Optional[str] = None
     negative_prompt: Optional[str] = Field(None, description="IGNORED on this distilled model")
     guidance_scale: Optional[float] = Field(None, description="IGNORED on this distilled model")
+    text_overlay: Optional[str] = Field(None, description="Text to overlay on the generated image")
+    text_position: str = Field("bottom", description="Position of text overlay: top, bottom, center, top-left, top-right, bottom-left, bottom-right")
+    text_color: str = Field("#FFFFFF", description="Text color in hex format")
+    text_bg_color: str = Field("#00000080", description="Text background color in hex format with alpha")
+    text_font_size: int = Field(48, ge=8, le=200, description="Text font size in pixels")
+    text_padding: int = Field(20, ge=0, le=100, description="Padding around text in pixels")
 
 
 class EditRequest(BaseModel):
@@ -139,6 +145,7 @@ class EnhanceRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
     style: Optional[str] = Field(None, description="flux2 (default), flux, sdxl, midjourney")
     model: Optional[str] = None
+    suggest_overlays: bool = Field(False, description="Also suggest text overlay settings (text, position, color, font_size)")
 
 
 class HealthResponse(BaseModel):
@@ -157,3 +164,53 @@ class HealthResponse(BaseModel):
     backends: dict[str, Any] = {}
     worker_pid: Optional[int] = None
     version: str = "0.2.0"
+
+
+class VideoRequest(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{"prompt": "a paper boat drifting down a rain gutter", "preset": "short-480p"}]
+        }
+    }
+
+    prompt: str = Field(..., min_length=1)
+    preset: str = Field("short-480p", description="short-480p | tiny-480p | long-480p | square-480p | portrait")
+    width: Optional[int] = Field(None, ge=256, le=1280, description="Must be divisible by 16")
+    height: Optional[int] = Field(None, ge=256, le=1280, description="Must be divisible by 16")
+    num_frames: Optional[int] = Field(None, ge=5, le=161, description="(n-1) must be divisible by 4; snapped if not")
+    steps: Optional[int] = Field(None, ge=1, le=50)
+    guidance_scale: Optional[float] = Field(None, ge=1.0, le=15.0, description="Wan is NOT distilled, so this genuinely applies")
+    fps: Optional[int] = Field(None, ge=1, le=60)
+    seed: Optional[int] = None
+    negative_prompt: Optional[str] = None
+    path: Optional[str] = None
+    codec: Optional[str] = Field(None, description="libx264 (default) or h264_nvenc")
+    enhance: bool = False
+    style: Optional[str] = None
+
+
+class JobRef(BaseModel):
+    job_id: str
+    kind: str
+    status: str
+    created_at: float
+
+
+class JobStatus(BaseModel):
+    id: str
+    kind: str
+    status: str
+    progress: float = 0.0
+    progress_msg: Optional[str] = None
+    error: Optional[str] = None
+    result: Optional[dict] = None
+    created_at: Optional[float] = None
+    started_at: Optional[float] = None
+    finished_at: Optional[float] = None
+    elapsed_s: Optional[float] = None
+    cancel_requested: bool = False
+
+
+class JobSubmit(BaseModel):
+    kind: str = Field(..., description="video | image | svg")
+    params: dict = Field(default_factory=dict)

@@ -216,6 +216,13 @@ def get_manager() -> ModelManager:
 
         mgr.register(ImageFluxBackend())
 
+        try:
+            from app.backends.video_wan import VideoWanBackend
+
+            mgr.register(VideoWanBackend())
+        except Exception:  # noqa: BLE001 - video deps are optional
+            pass
+
         # CPU-only backends: never leased, safe to run alongside a GPU job.
         try:
             from app.backends.enhance import EnhanceBackend

@@ -32,6 +32,12 @@ def generate_image(
     reference_images: list[str] | None = None,
     enhance: bool = False,
     style: str | None = None,
+    text_overlay: str | None = None,
+    text_position: str = "bottom",
+    text_color: str = "#FFFFFF",
+    text_bg_color: str = "#00000080",
+    text_font_size: int = 48,
+    text_padding: int = 20,
     progress=None,
 ) -> Artifact:
     warnings: list[str] = []
@@ -64,6 +70,12 @@ def generate_image(
             "negative_prompt": negative_prompt,
             "guidance_scale": guidance_scale,
             "reference_images": reference_images or [],
+            "text_overlay": text_overlay,
+            "text_position": text_position,
+            "text_color": text_color,
+            "text_bg_color": text_bg_color,
+            "text_font_size": text_font_size,
+            "text_padding": text_padding,
             "warnings": warnings,
         },
         progress,
@@ -191,3 +203,79 @@ def health() -> dict[str, Any]:
         "load_error": getattr(image, "load_error", None),
         **status,
     }
+
+
+def generate_video(
+    prompt: str,
+    preset: str = "short-480p",
+    width: int | None = None,
+    height: int | None = None,
+    num_frames: int | None = None,
+    steps: int | None = None,
+    guidance_scale: float | None = None,
+    fps: int | None = None,
+    seed: int | None = None,
+    negative_prompt: str | None = None,
+    path: str | None = None,
+    codec: str | None = None,
+    enhance: bool = False,
+    style: str | None = None,
+    progress=None,
+    is_cancelled=None,
+) -> Artifact:
+    from app.config import VIDEO_PRESETS
+
+    warnings: list[str] = []
+    cfg = VIDEO_PRESETS.get(preset) or VIDEO_PRESETS["short-480p"]
+    if preset not in VIDEO_PRESETS:
+        warnings.append(f"unknown preset {preset!r}, using short-480p")
+
+    prompt_used = prompt
+    if enhance:
+        from app.backends.enhance import enhance_prompt
+
+        try:
+            result = enhance_prompt(prompt, style)
+            prompt_used = result["prompt"]
+            warnings.append(f"prompt enhanced with {result['model']}")
+        except Exception as exc:  # noqa: BLE001
+            warnings.append(f"prompt enhancement failed, using original: {exc}")
+
+    out_path = resolve_output_path(path, "video")
+    return get_manager().run(
+        "video.wan21-t2v-1.3b",
+        {
+            "prompt": prompt_used,
+            "negative_prompt": negative_prompt,
+            "width": width or cfg["width"],
+            "height": height or cfg["height"],
+            "num_frames": num_frames or cfg["num_frames"],
+            "steps": steps or cfg["steps"],
+            "fps": fps or cfg["fps"],
+            "guidance_scale": guidance_scale if guidance_scale is not None else 5.0,
+            "seed": seed,
+            "codec": codec,
+            "out_path": out_path,
+            "warnings": warnings,
+            "is_cancelled": is_cancelled,
+        },
+        progress,
+    )
+
+
+def job_handlers() -> dict[str, Any]:
+    """Kind -> callable used by the job runner.
+
+    Each takes (params, progress, is_cancelled) and returns an Artifact.
+    """
+
+    def _video(params, progress, is_cancelled):
+        return generate_video(progress=progress, is_cancelled=is_cancelled, **params)
+
+    def _image(params, progress, is_cancelled):
+        return generate_image(progress=progress, **params)
+
+    def _svg(params, progress, is_cancelled):
+        return generate_svg(progress=progress, **params)
+
+    return {"video": _video, "image": _image, "svg": _svg}

@@ -21,10 +21,10 @@ required; Desktop does not inherit a useful working directory.
 {
   "mcpServers": {
     "localgen": {
-      "command": "C:/Users/SREEKAR/Desktop/workspace/projects/LocalImageGen/.venv/Scripts/python.exe",
+      "command": "C:/Users/<USER>/Desktop/workspace/projects/LocalImageGen/.venv/Scripts/python.exe",
       "args": ["-m", "app.mcp_server"],
       "env": {
-        "PYTHONPATH": "C:/Users/SREEKAR/Desktop/workspace/projects/LocalImageGen"
+        "PYTHONPATH": "C:/Users/<USER>/Desktop/workspace/projects/LocalImageGen"
       }
     }
   }
@@ -51,9 +51,9 @@ The existing `opencode.json` entry keeps working unchanged — the module path
 ## pi / deepseek / any other stdio harness
 
 ```
-command: C:/Users/SREEKAR/Desktop/workspace/projects/LocalImageGen/.venv/Scripts/python.exe
+command: C:/Users/<USER>/Desktop/workspace/projects/LocalImageGen/.venv/Scripts/python.exe
 args:    ["-m", "app.mcp_server"]
-env:     PYTHONPATH=C:/Users/SREEKAR/Desktop/workspace/projects/LocalImageGen
+env:     PYTHONPATH=C:/Users/<USER>/Desktop/workspace/projects/LocalImageGen
 ```
 
 ## Over HTTP instead of stdio
