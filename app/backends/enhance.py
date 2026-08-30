@@ -38,21 +38,46 @@ def resolve_style(style: str | None) -> str:
     return DEFAULT_STYLE
 
 
-def enhance_prompt(prompt: str, style: str | None = None, model: str | None = None) -> dict[str, Any]:
-    resolved = resolve_style(style)
+def enhance_prompt(prompt: str, style: str | None = None, model: str | None = None, suggest_overlays: bool = False) -> dict[str, Any]:
+    if suggest_overlays:
+        resolved = "flux2_overlay"
+    else:
+        resolved = resolve_style(style)
     content, elapsed = chat(
         system=SYSTEM_PROMPTS[resolved],
         user=prompt,
         model=model,
         temperature=0.8,
     )
-    return {
+    result: dict[str, Any] = {
         "prompt": content.strip(),
         "original": prompt,
         "style": resolved,
         "model": model or OLLAMA_MODEL,
         "elapsed_s": round(elapsed, 2),
     }
+    if suggest_overlays:
+        import json as _json
+        text = content.strip()
+        try:
+            # Try to parse as JSON
+            parsed = _json.loads(text)
+            result["prompt"] = parsed.get("prompt", text)
+            result["overlay"] = parsed.get("overlay")
+        except _json.JSONDecodeError:
+            # If JSON parsing fails, try to extract JSON from the response
+            import re
+            json_match = re.search(r'\{[\s\S]*"prompt"[\s\S]*\}', text)
+            if json_match:
+                try:
+                    parsed = _json.loads(json_match.group())
+                    result["prompt"] = parsed.get("prompt", text)
+                    result["overlay"] = parsed.get("overlay")
+                except _json.JSONDecodeError:
+                    result["overlay"] = None
+            else:
+                result["overlay"] = None
+    return result
 
 
 class EnhanceBackend:

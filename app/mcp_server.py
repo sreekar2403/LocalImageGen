@@ -81,7 +81,8 @@ def build_server():
     mcp = MCPServer(
         "LocalGen",
         instructions=(
-            "Local image and SVG generation on this machine (FLUX.2-klein-4B + Ollama). "
+            "Local image, SVG and short-video generation on this machine "
+            "(FLUX.2-klein-4B, Wan2.1-T2V-1.3B, and a local LLM). "
             "Tools return file paths; use your file reader to view an image. "
             "guidance_scale and negative_prompt are accepted but IGNORED because the "
             "image model is distilled."
@@ -208,6 +209,80 @@ def build_server():
         """
         data = _call("POST", "/v1/enhance", {"prompt": prompt, "style": style})
         return data["prompt"]
+
+    @mcp.tool()
+    def generate_video(
+        prompt: str,
+        preset: str = "short-480p",
+        num_frames: Optional[int] = None,
+        steps: Optional[int] = None,
+        seed: Optional[int] = None,
+        fps: Optional[int] = None,
+        negative_prompt: Optional[str] = None,
+        path: Optional[str] = None,
+    ) -> str:
+        """Generate a short video locally with Wan2.1-T2V-1.3B. Returns a job id.
+
+        SLOW -- minutes, not seconds. Returns immediately; poll with job_status.
+        Quality is concept-clip grade, not production. presets: short-480p (~2s),
+        tiny-480p (fastest), long-480p (~3s), square-480p, portrait.
+        """
+        payload = {
+            "prompt": prompt, "preset": preset, "num_frames": num_frames,
+            "steps": steps, "seed": seed, "fps": fps,
+            "negative_prompt": negative_prompt, "path": path,
+        }
+        payload = {k: v for k, v in payload.items() if v is not None}
+        job = _call("POST", "/v1/video", payload)
+        return (
+            f"Job {job['job_id']} queued ({job['status']}).\n"
+            f"Expect several minutes on this hardware.\n"
+            f'Poll with job_status("{job["job_id"]}").'
+        )
+
+    @mcp.tool()
+    def job_status(job_id: str) -> str:
+        """Check a running job. When done, returns the output paths."""
+        j = _call("GET", f"/jobs/{job_id}")
+        status = j["status"]
+        if status == "done" and j.get("result"):
+            art = j["result"]
+            meta = art.get("meta") or {}
+            return (
+                f"done in {j.get('elapsed_s')}s\n"
+                f"Video:        {art['path']}\n"
+                f"Contact sheet: {art.get('preview_path')}\n"
+                f"{art.get('width')}x{art.get('height')} · {meta.get('num_frames')} frames · "
+                f"{meta.get('fps')} fps · {meta.get('duration_s')}s · "
+                f"{meta.get('peak_vram_mb')} MiB peak\n"
+                f"Read the contact sheet to see what was generated."
+                + _warnings_block(art)
+            )
+        if status in ("error", "cancelled"):
+            return f"{status}: {j.get('error')}"
+        pct = round((j.get("progress") or 0) * 100)
+        return (
+            f"{status} · {pct}% · {j.get('progress_msg') or ''} · "
+            f"{j.get('elapsed_s') or 0}s elapsed"
+        )
+
+    @mcp.tool()
+    def list_jobs(status: Optional[str] = None, limit: int = 10) -> str:
+        """List recent jobs, newest first."""
+        jobs = _call("GET", f"/jobs?limit={limit}" + (f"&status={status}" if status else ""))
+        if not jobs:
+            return "no jobs"
+        return "\n".join(
+            f"{j['id']}  {j['kind']:6s} {j['status']:9s} "
+            f"{round((j.get('progress') or 0) * 100):3d}%  {j.get('progress_msg') or ''}"
+            for j in jobs
+        )
+
+    @mcp.tool()
+    def cancel_job(job_id: str) -> str:
+        """Cancel a queued or running job."""
+        j = _call("POST", f"/jobs/{job_id}/cancel")
+        return f"{j['id']} -> {j['status']}"
 
     @mcp.tool()
     def list_presets() -> str:

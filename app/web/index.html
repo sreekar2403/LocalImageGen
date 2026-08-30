@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LocalGen</title>
+<style>
+  :root {
+    --bg: #f8f9fb;
+    --surface: #ffffff;
+    --surface-2: #f1f3f5;
+    --surface-3: #e9ecef;
+    --border: #dee2e6;
+    --border-light: #e9ecef;
+    --text: #212529;
+    --text-secondary: #6c757d;
+    --text-tertiary: #adb5bd;
+    --accent: #4263eb;
+    --accent-hover: #3b5bdb;
+    --accent-light: #edf2ff;
+    --accent-bg: #dbe4ff;
+    --success: #40c057;
+    --success-bg: #ebfbee;
+    --danger: #e03131;
+    --danger-bg: #fff5f5;
+    --warning: #f08c00;
+    --warning-bg: #fff9db;
+    --user-bg: #4263eb;
+    --user-text: #ffffff;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,.1);
+    --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    --transition: 150ms ease;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 var(--font);
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Header ─── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    color: #fff; font-weight: 700; font-size: 14px;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .status-pill {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+  }
+  .status-pill .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    transition: background var(--transition);
+  }
+  .status-pill.ok { background: var(--success-bg); color: #2b8a3e; }
+  .status-pill.ok .dot { background: var(--success); }
+  .status-pill.bad { background: var(--danger-bg); color: var(--danger); }
+  .status-pill.bad .dot { background: var(--danger); }
+
+  /* ─── Mode Tabs ─── */
+  .mode-bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .mode-tab {
+    padding: 7px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: all var(--transition);
+    user-select: none;
+  }
+  .mode-tab:hover { background: var(--surface-2); color: var(--text); }
+  .mode-tab.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+
+  /* ─── Messages ─── */
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .msg {
+    display: flex;
+    gap: 12px;
+    max-width: 820px;
+    width: 100%;
+    margin: 0 auto;
+    animation: fadeIn 200ms ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg .avatar {
+    flex: 0 0 32px; height: 32px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+    margin-top: 2px;
+  }
+  .msg.user .avatar { background: var(--user-bg); color: #fff; }
+  .msg.assistant .avatar { background: var(--surface-3); color: var(--text-secondary); }
+  .bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    flex: 1;
+    min-width: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .msg.user .bubble {
+    background: var(--user-bg);
+    color: #fff;
+    border-color: var(--user-bg);
+  }
+  .bubble .text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+  }
+  .thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .thumbs img, .thumbs .file {
+    height: 64px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    object-fit: cover;
+    background: var(--surface-2);
+  }
+  .thumbs .file {
+    display: grid; place-items: center;
+    padding: 0 14px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* ─── Result Card ─── */
+  .result {
+    margin-top: 10px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .result img, .result video {
+    width: 100%;
+    display: block;
+    background: var(--surface-2);
+  }
+  .result .meta {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    align-items: center;
+    border-top: 1px solid var(--border-light);
+  }
+  .result .meta .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--surface-2);
+    font-weight: 500;
+  }
+  .result .meta a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    margin-left: auto;
+  }
+  .result .meta a:hover { text-decoration: underline; }
+  .progress {
+    margin-top: 10px;
+  }
+  .progress .bar {
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress .bar > i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width .4s ease;
+  }
+  .progress .label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    font-weight: 500;
+  }
+  .warn { color: var(--warning); font-size: 12px; margin-top: 6px; font-weight: 500; }
+  .err { color: var(--danger); font-size: 13px; margin-top: 6px; font-weight: 500; }
+
+  /* ─── Empty State ─── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    color: var(--text-tertiary);
+    padding: 40px;
+  }
+  .empty-state .icon {
+    width: 64px; height: 64px;
+    background: var(--surface-2);
+    border-radius: var(--radius-lg);
+    display: grid; place-items: center;
+    font-size: 28px;
+  }
+  .empty-state h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .empty-state p {
+    font-size: 14px;
+    text-align: center;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  /* ─── Footer / Composer ─── */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 0;
+  }
+
+  /* Settings Panel */
+  .settings-panel {
+    display: none;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--surface-2);
+    animation: slideDown 200ms ease;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .settings-panel.open { display: block; }
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .field input, .field select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font);
+    transition: border-color var(--transition);
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+  .field .row {
+    display: flex;
+    gap: 8px;
+  }
+  .field .row input { flex: 1; min-width: 0; }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 4px;
+  }
+  .toggle {
+    position: relative;
+    width: 38px; height: 22px;
+    appearance: none;
+    background: var(--surface-3);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background var(--transition);
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform var(--transition);
+    box-shadow: var(--shadow-sm);
+  }
+  .toggle:checked { background: var(--accent); }
+  .toggle:checked::after { transform: translateX(16px); }
+  .toggle-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  /* Platform selector */
+  .platform-row {
+    grid-column: 1 / -1;
+  }
+  .platform-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .platform-chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+  }
+  .platform-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .platform-chip.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* Composer */
+  .composer-wrap {
+    padding: 12px 24px 16px;
+  }
+  .composer {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+  .composer .side-btns {
+    display: flex;
+    gap: 6px;
+  }
+  .composer .icon-btn {
+    flex: 0 0 auto;
+    width: 42px; height: 42px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: grid; place-items: center;
+    font-size: 18px;
+    transition: all var(--transition);
+  }
+  .composer .icon-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .composer .icon-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .composer textarea {
+    flex: 1;
+    resize: none;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font: 14px/1.5 var(--font);
+    max-height: 160px;
+    min-height: 42px;
+    transition: border-color var(--transition);
+  }
+  .composer textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+  .composer textarea::placeholder { color: var(--text-tertiary); }
+  .composer .send {
+    flex: 0 0 auto;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0 20px;
+    height: 42px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: var(--font);
+    transition: background var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .composer .send:hover { background: var(--accent-hover); }
+  .composer .send:disabled { opacity: .5; cursor: default; }
+  .composer .send svg { width: 16px; height: 16px; }
+
+  .chips {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    max-width: 820px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .chip {
+    background: var(--accent-light);
+    border: 1px solid var(--accent-bg);
+    color: var(--accent);
+    border-radius: 20px;
+    padding: 4px 6px 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .chip button {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transition: background var(--transition);
+  }
+  .chip button:hover { background: var(--accent-bg); }
+
+  /* SVG-specific group */
+  .grp { display: none; }
+  .grp.show { display: contents; }
+
+  /* Scrollbar */
+  #messages::-webkit-scrollbar { width: 6px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+  #messages::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+  @media (max-width: 640px) {
+    header { padding: 10px 16px; }
+    .mode-bar { padding: 4px 16px; overflow-x: auto; }
+    #messages { padding: 16px; }
+    .composer-wrap { padding: 10px 16px 14px; }
+    .settings-panel { padding: 14px 16px; }
+    .settings-grid { grid-template-columns: 1fr 1fr; }
+    .msg { gap: 8px; }
+    .bubble { padding: 10px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">LG</div>
+    <h1>LocalGen</h1>
+  </div>
+  <div class="status-pill" id="statusPill">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">connecting</span>
+  </div>
+</header>
+
+<div class="mode-bar">
+  <button class="mode-tab active" data-mode="image">Image</button>
+  <button class="mode-tab" data-mode="ref">Image + Ref</button>
+  <button class="mode-tab" data-mode="svg">SVG</button>
+  <button class="mode-tab" data-mode="video">Video</button>
+</div>
+
+<div id="messages">
+  <div class="empty-state">
+    <div class="icon">&#9998;</div>
+    <h2>What would you like to create?</h2>
+    <p>Generate images, SVGs, or videos from text prompts. Attach reference images for editing.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-grid" id="settingsGrid"></div>
+  </div>
+  <div class="composer-wrap">
+    <div class="composer">
+      <div class="side-btns">
+        <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Toggle settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4m-9.5-11H1m22 0h-1.5m-2.7-7.8 1.1-1.1M4.1 19.9l1.1-1.1m0-13.4L4.1 4.1m15.8 15.8-1.1-1.1"/></svg>
+        </button>
+        <button class="icon-btn" id="attachBtn" title="Attach image(s)" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.4 11.6 12.4 20.6a5 5 0 0 1-7-7l9.6-9.6a3.3 3.3 0 0 1 4.7 4.7L10 18.1a1.7 1.7 0 0 1-2.3-2.3l8.4-8.4"/></svg>
+        </button>
+      </div>
+      <input type="file" id="fileInput" multiple accept="image/*" hidden>
+      <textarea id="prompt" rows="1" placeholder="Describe what you want to generate..."></textarea>
+      <button class="send" id="sendBtn">
+        Generate
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</footer>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const messages = $("#messages");
+const state = { attachments: [], mode: "image" };
+
+function fileUrl(absPath) { return "/file?p=" + encodeURIComponent(absPath); }
+function escapeHtml(s) { return (s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function scrollBottom() { messages.scrollTop = messages.scrollHeight; }
+
+function removeEmptyState() {
+  const e = messages.querySelector(".empty-state");
+  if (e) e.remove();
+}
+
+function addMessage(role, text, attachments) {
+  removeEmptyState();
+  const el = document.createElement("div");
+  el.className = "msg " + role;
+  const who = role === "user" ? "You" : "AI";
+  let html = `<div class="avatar">${who}</div><div class="bubble">`;
+  if (text) html += `<div class="text">${escapeHtml(text)}</div>`;
+  if (attachments && attachments.length) {
+    html += `<div class="thumbs">`;
+    for (const a of attachments) {
+      html += a.isImage
+        ? `<img src="${a.url}" alt="${escapeHtml(a.name)}">`
+        : `<div class="file">${escapeHtml(a.name)}</div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+  messages.appendChild(el);
+  scrollBottom();
+  return el;
+}
+
+function renderArtifact(art) {
+  const wrap = document.createElement("div");
+  wrap.className = "result";
+  let media = "";
+  if (art.kind === "video") {
+    media = `<video controls src="${fileUrl(art.path)}"></video>`;
+  } else if (art.kind === "svg") {
+    const showUrl = (art.preview_path && art.preview_path !== art.path) ? fileUrl(art.preview_path) : fileUrl(art.path);
+    media = `<img src="${showUrl}" alt="svg preview">`;
+  } else {
+    media = `<img src="${fileUrl(art.path)}" alt="generated image">`;
+  }
+  let meta = `<div class="meta">`;
+  meta += `<span class="badge">${escapeHtml(art.kind)}</span>`;
+  if (art.width) meta += `<span class="badge">${art.width}&times;${art.height}</span>`;
+  if (art.steps) meta += `<span class="badge">${art.steps} steps</span>`;
+  if (art.seed != null) meta += `<span class="badge">seed ${art.seed}</span>`;
+  if (art.elapsed_s != null) meta += `<span class="badge">${art.elapsed_s.toFixed(1)}s</span>`;
+  meta += `<a href="${fileUrl(art.path)}" download>download</a>`;
+  if (art.kind === "svg" && art.preview_path && art.preview_path !== art.path) {
+    meta += `<a href="${fileUrl(art.path)}" download style="margin-left:8px">svg source</a>`;
+  }
+  meta += `</div>`;
+  let warns = "";
+  for (const w of (art.warnings || [])) warns += `<div class="warn">&#9888; ${escapeHtml(w)}</div>`;
+  wrap.innerHTML = media + meta + warns;
+  return wrap;
+}
+
+function setBusy(busy) {
+  const btn = $("#sendBtn");
+  btn.disabled = busy;
+  btn.innerHTML = busy
+    ? `Working...<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin"><path d="M12 2v4m0 12v4m-8-10H0m24 0h-4m-3.5-6.5 2.8-2.8M4.7 19.3l2.8-2.8m0-13.4L4.7 4.7m14.8 14.8-2.8-2.8"/></svg>`
+    : `Generate<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>`;
+}
+
+async function uploadFiles(files) {
+  for (const f of files) {
+    const fd = new FormData();
+    fd.append("file", f);
+    const r = await fetch("/v1/upload", { method: "POST", body: fd });
+    if (!r.ok) { alert("Upload failed: " + (await r.text())); continue; }
+    const j = await r.json();
+    const isImage = (f.type || "").startsWith("image/");
+    state.attachments.push({ path: j.path, name: j.filename, url: fileUrl(j.path), isImage });
+  }
+  renderChips();
+}
+
+function renderChips() {
+  const c = $("#chips");
+  c.innerHTML = "";
+  state.attachments.forEach((a, i) => {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.innerHTML = `${escapeHtml(a.name)} <button title="remove">&times;</button>`;
+    chip.querySelector("button").onclick = () => { state.attachments.splice(i, 1); renderChips(); };
+    c.appendChild(chip);
+  });
+}
+
+/* ─── Settings panels per mode ─── */
+const PLATFORMS = {
+  "default": { label: "1:1", w: 1024, h: 1024 },
+  "youtube": { label: "16:9", w: 1024, h: 576, icon: "YT" },
+  "youtube-shorts": { label: "9:16", w: 576, h: 1024, icon: "YS" },
+  "reels": { label: "9:16", w: 576, h: 1024, icon: "Re" },
+  "instagram": { label: "1:1", w: 1024, h: 1024, icon: "IG" },
+  "instagram-story": { label: "9:16", w: 576, h: 1024, icon: "IG" },
+  "instagram-portrait": { label: "4:5", w: 896, h: 1120, icon: "IG" },
+  "twitter": { label: "16:9", w: 1024, h: 576, icon: "X" },
+  "facebook": { label: "1:1", w: 1024, h: 1024, icon: "FB" },
+  "linkedin": { label: "1.88:1", w: 1024, h: 544, icon: "in" },
+  "whatsapp": { label: "9:16", w: 576, h: 1024, icon: "WA" },
+};
+
+function buildSettingsPanel(mode) {
+  const grid = $("#settingsGrid");
+  grid.innerHTML = "";
+
+  if (mode === "image" || mode === "ref") {
+    // Platform selector
+    const pDiv = document.createElement("div");
+    pDiv.className = "field platform-row";
+    pDiv.innerHTML = `<label>Platform Preset</label><div class="platform-chips" id="platformChips"></div>`;
+    grid.appendChild(pDiv);
+    const chips = pDiv.querySelector("#platformChips");
+    for (const [key, p] of Object.entries(PLATFORMS)) {
+      const c = document.createElement("button");
+      c.className = "platform-chip" + (key === "default" ? " active" : "");
+      c.dataset.platform = key;
+      c.innerHTML = `${p.icon ? `<span style="font-weight:700;margin-right:2px">${p.icon}</span>` : ""}${p.label}`;
+      c.onclick = () => {
+        chips.querySelectorAll(".platform-chip").forEach(x => x.classList.remove("active"));
+        c.classList.add("active");
+        $("#dimW").value = p.w;
+        $("#dimH").value = p.h;
+        state.platform = key;
+      };
+      chips.appendChild(c);
+    }
+
+    // Dimensions
+    const dDiv = document.createElement("div");
+    dDiv.className = "field";
+    dDiv.innerHTML = `<label>Dimensions</label><div class="row"><input type="number" id="dimW" value="1024" min="256" max="1024" step="16" placeholder="Width"><input type="number" id="dimH" value="1024" min="256" max="1024" step="16" placeholder="Height"></div>`;
+    grid.appendChild(dDiv);
+
+    // Steps
+    const sDiv = document.createElement("div");
+    sDiv.className = "field";
+    sDiv.innerHTML = `<label>Steps</label><input type="number" id="steps" value="4" min="1" max="50">`;
+    grid.appendChild(sDiv);
+
+    // Seed
+    const seedDiv = document.createElement("div");
+    seedDiv.className = "field";
+    seedDiv.innerHTML = `<label>Seed</label><input type="number" id="seed" placeholder="random">`;
+    grid.appendChild(seedDiv);
+
+    // Text Overlay
+    const tDiv = document.createElement("div");
+    tDiv.className = "field";
+    tDiv.style.gridColumn = "1 / -1";
+    tDiv.innerHTML = `<label>Text Overlay</label><input type="text" id="textOverlay" placeholder="e.g. Running 27B on 8GB VRAM">`;
+    grid.appendChild(tDiv);
+
+    // Text Position
+    const tpDiv = document.createElement("div");
+    tpDiv.className = "field";
+    tpDiv.innerHTML = `<label>Text Position</label><select id="textPosition"><option value="bottom">Bottom</option><option value="top">Top</option><option value="center">Center</option><option value="top-left">Top Left</option><option value="top-right">Top Right</option><option value="bottom-left">Bottom Left</option><option value="bottom-right">Bottom Right</option></select>`;
+    grid.appendChild(tpDiv);
+
+    // Text Color
+    const tcDiv = document.createElement("div");
+    tcDiv.className = "field";
+    tcDiv.innerHTML = `<label>Text Color</label><input type="color" id="textColor" value="#FFFFFF">`;
+    grid.appendChild(tcDiv);
+
+    // Text Font Size
+    const tfDiv = document.createElement("div");
+    tfDiv.className = "field";
+    tfDiv.innerHTML = `<label>Font Size</label><input type="number" id="textFontSize" value="48" min="8" max="200">`;
+    grid.appendChild(tfDiv);
+
+    // Enhance
+    const eDiv = document.createElement("div");
+    eDiv.className = "field";
+    eDiv.innerHTML = `<label>Enhance</label><div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt + suggest overlay</span></div>`;
+    grid.appendChild(eDiv);
+
+    // Reference image hint for edit mode
+    if (mode === "ref") {
+      const hint = document.createElement("div");
+      hint.className = "field";
+      hint.style.gridColumn = "1 / -1";
+      hint.innerHTML = `<label>Reference</label><p style="font-size:13px;color:var(--text-secondary);margin:0">Attach images using the paperclip button, then describe the edit you want.</p>`;
+      grid.appendChild(hint);
+    }
+  } else if (mode === "svg") {
+    const kindDiv = document.createElement("div");
+    kindDiv.className = "field";
+    kindDiv.innerHTML = `<label>Kind</label><select id="svgKind"><option value="icon">Icon</option><option value="logo">Logo</option><option value="diagram">Diagram</option><option value="chart">Chart</option><option value="illustration">Illustration</option></select>`;
+    grid.appendChild(kindDiv);
+
+    const modeDiv = document.createElement("div");
+    modeDiv.className = "field";
+    modeDiv.innerHTML = `<label>Mode</label><select id="svgMode"><option value="author">Author (LLM writes SVG)</option><option value="trace">Trace (FLUX + vectorize)</option></select>`;
+    grid.appendChild(modeDiv);
+
+    const colDiv = document.createElement("div");
+    colDiv.className = "field";
+    colDiv.innerHTML = `<label>Colors</label><input type="number" id="colors" value="12" min="2" max="64">`;
+    grid.appendChild(colDiv);
+
+    const seedDiv = document.createElement("div");
+    seedDiv.className = "field";
+    seedDiv.innerHTML = `<label>Seed</label><input type="number" id="seed" placeholder="random">`;
+    grid.appendChild(seedDiv);
+
+    const eDiv = document.createElement("div");
+    eDiv.className = "field";
+    eDiv.innerHTML = `<label>Enhance</label><div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt with local LLM</span></div>`;
+    grid.appendChild(eDiv);
+  } else if (mode === "video") {
+    const presetDiv = document.createElement("div");
+    presetDiv.className = "field";
+    presetDiv.innerHTML = `<label>Preset</label><select id="preset"><option value="short-480p">short-480p (1.3s)</option><option value="tiny-480p">tiny-480p (0.7s)</option><option value="long-480p">long-480p (2.0s)</option><option value="square-480p">square-480p</option><option value="portrait">portrait</option></select>`;
+    grid.appendChild(presetDiv);
+
+    const sDiv = document.createElement("div");
+    sDiv.className = "field";
+    sDiv.innerHTML = `<label>Steps</label><input type="number" id="steps" value="20" min="1" max="50">`;
+    grid.appendChild(sDiv);
+
+    const seedDiv = document.createElement("div");
+    seedDiv.className = "field";
+    seedDiv.innerHTML = `<label>Seed</label><input type="number" id="seed" placeholder="random">`;
+    grid.appendChild(seedDiv);
+
+    const eDiv = document.createElement("div");
+    eDiv.className = "field";
+    eDiv.innerHTML = `<label>Enhance</label><div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt with local LLM</span></div>`;
+    grid.appendChild(eDiv);
+  }
+
+  state.platform = "default";
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll(".mode-tab").forEach(t => t.classList.toggle("active", t.dataset.mode === mode));
+  $("#attachBtn").style.display = (mode === "ref") ? "" : "none";
+  $("#prompt").placeholder = mode === "ref"
+    ? "Describe the edit you want..."
+    : "Describe what you want to generate...";
+  buildSettingsPanel(mode);
+}
+
+// ─── Send ───
+async function send() {
+  const text = $("#prompt").value.trim();
+  const mode = state.mode;
+  const attaches = state.attachments.slice();
+  if (!text && !(mode === "ref" && attaches.length)) return;
+
+  const userAttachments = attaches.map(a => ({ name: a.name, url: a.url, isImage: a.isImage }));
+  addMessage("user", text, userAttachments);
+
+  const assistantEl = addMessage("assistant", "Thinking...");
+  const bubble = assistantEl.querySelector(".bubble");
+  setBusy(true);
+
+  let promptText = text;
+  const enhanceEl = $("#enhance");
+  const enhanceEnabled = enhanceEl && enhanceEl.checked;
+
+  // Step 1: If enhance is ON for image/ref, call /v1/enhance first to get suggestions
+  if (enhanceEnabled && (mode === "image" || mode === "ref")) {
+    bubble.innerHTML = `<div class="text">Enhancing prompt...</div>`;
+    scrollBottom();
+    try {
+      const er = await fetch("/v1/enhance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: text, suggest_overlays: true }),
+      });
+      if (!er.ok) throw new Error("Enhancement failed");
+      const eData = await er.json();
+      promptText = eData.prompt || text;
+
+      // Auto-fill overlay fields from suggestions
+      if (eData.overlay) {
+        const o = eData.overlay;
+        const textOverlayEl = $("#textOverlay");
+        const textPositionEl = $("#textPosition");
+        const textColorEl = $("#textColor");
+        const textFontSizeEl = $("#textFontSize");
+        if (textOverlayEl && o.text) textOverlayEl.value = o.text;
+        if (textPositionEl && o.position) textPositionEl.value = o.position;
+        if (textColorEl && o.color) textColorEl.value = o.color;
+        if (textFontSizeEl && o.font_size) textFontSizeEl.value = o.font_size;
+      }
+    } catch (e) {
+      // Enhancement failed, use original prompt
+      promptText = text;
+    }
+    bubble.innerHTML = `<div class="text">Generating...</div>`;
+    scrollBottom();
+  }
+
+  const body = { prompt: promptText };
+
+  if (mode === "image" || mode === "ref") {
+    const w = parseInt($("#dimW")?.value, 10);
+    const h = parseInt($("#dimH")?.value, 10);
+    if (w) body.width = w;
+    if (h) body.height = h;
+    body.platform = state.platform || "default";
+  }
+
+  const stepsEl = $("#steps");
+  const seedEl = $("#seed");
+  if (stepsEl) { const v = parseInt(stepsEl.value, 10); if (v) body.steps = v; }
+  if (seedEl) { const v = seedEl.value.trim(); if (v !== "") body.seed = parseInt(v, 10); }
+
+  // Text overlay params (use auto-filled values if enhance was ON)
+  const textOverlayEl = $("#textOverlay");
+  const textPositionEl = $("#textPosition");
+  const textColorEl = $("#textColor");
+  const textFontSizeEl = $("#textFontSize");
+  if (textOverlayEl && textOverlayEl.value.trim()) {
+    body.text_overlay = textOverlayEl.value.trim();
+    if (textPositionEl) body.text_position = textPositionEl.value;
+    if (textColorEl) body.text_color = textColorEl.value;
+    if (textFontSizeEl) body.text_font_size = parseInt(textFontSizeEl.value, 10) || 48;
+  }
+
+  let endpoint = "/v1/image";
+  if (mode === "image") {
+    endpoint = "/v1/image";
+  } else if (mode === "ref") {
+    endpoint = "/v1/image/edit";
+    body.image_paths = attaches.map(a => a.path);
+  } else if (mode === "svg") {
+    endpoint = "/v1/svg";
+    body.mode = $("#svgMode").value;
+    body.svg_kind = $("#svgKind").value;
+    body.colors = parseInt($("#colors").value, 10) || 12;
+    if (enhanceEnabled) body.enhance = true;
+  } else if (mode === "video") {
+    endpoint = "/v1/video";
+    body.preset = $("#preset").value;
+    if (enhanceEnabled) body.enhance = true;
+  }
+
+  try {
+    const r = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || ("HTTP " + r.status));
+
+    if (mode === "video") {
+      bubble.innerHTML = "";
+      const prog = document.createElement("div");
+      prog.className = "progress";
+      prog.innerHTML = `<div class="bar"><i></i></div><div class="label">queued...</div>`;
+      bubble.appendChild(prog);
+      const bar = prog.querySelector("i");
+      const label = prog.querySelector(".label");
+      const jobId = data.job_id;
+      const poll = async () => {
+        const jr = await fetch("/jobs/" + jobId);
+        const job = await jr.json();
+        const pct = Math.round((job.progress || 0) * 100);
+        bar.style.width = pct + "%";
+        label.textContent = `${job.status} \u00b7 ${pct}%${job.progress_msg ? " \u00b7 " + job.progress_msg : ""}`;
+        if (job.status === "done") {
+          bubble.innerHTML = "";
+          if (job.result) bubble.appendChild(renderArtifact(job.result));
+          else bubble.textContent = "Done.";
+        } else if (job.status === "error" || job.status === "cancelled") {
+          bubble.innerHTML = `<div class="err">${escapeHtml(job.error || job.status)}</div>`;
+        } else {
+          setTimeout(poll, 1500);
+        }
+      };
+      poll();
+    } else {
+      bubble.innerHTML = "";
+      bubble.appendChild(renderArtifact(data));
+    }
+  } catch (e) {
+    bubble.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
+  } finally {
+    setBusy(false);
+    $("#prompt").value = "";
+    state.attachments = [];
+    renderChips();
+    scrollBottom();
+  }
+}
+
+// ─── Status ───
+async function refreshStatus() {
+  try {
+    const r = await fetch("/health");
+    const h = await r.json();
+    const pill = $("#statusPill");
+    const dot = $("#statusDot");
+    const text = $("#statusText");
+    pill.className = "status-pill " + (h.loaded ? "ok" : "bad");
+    const q = h.quantization && h.quantization !== "none" ? ` \u00b7 ${h.quantization}` : "";
+    text.textContent = `${h.model}${q} \u00b7 ${h.loaded ? "ready" : "not loaded"}`;
+  } catch (e) {
+    const pill = $("#statusPill");
+    pill.className = "status-pill bad";
+    $("#statusText").textContent = "worker unreachable";
+  }
+}
+
+// ─── Wiring ───
+document.querySelectorAll(".mode-tab").forEach(tab => {
+  tab.addEventListener("click", () => setMode(tab.dataset.mode));
+});
+
+$("#settingsBtn").addEventListener("click", () => {
+  const panel = $("#settingsPanel");
+  const btn = $("#settingsBtn");
+  panel.classList.toggle("open");
+  btn.classList.toggle("active");
+});
+
+$("#attachBtn").addEventListener("click", () => $("#fileInput").click());
+$("#fileInput").addEventListener("change", (e) => {
+  if (e.target.files.length) uploadFiles(e.target.files);
+  e.target.value = "";
+});
+$("#sendBtn").addEventListener("click", send);
+$("#prompt").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+$("#prompt").addEventListener("input", function () {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 160) + "px";
+});
+
+setMode("image");
+refreshStatus();
+setInterval(refreshStatus, 15000);
+</script>
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 1s linear infinite; }
+</style>
+</body>
+</html>

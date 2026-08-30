@@ -225,3 +225,4 @@ opencode.json
 # LocalGen generated artifacts
 bench_results/
 *.raster.png
+mem/
