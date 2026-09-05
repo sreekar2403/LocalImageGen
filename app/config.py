@@ -103,11 +103,12 @@ PLATFORMS = {
 VIDEO_PRESETS = {
     # Wan requires dimensions divisible by 16 and (num_frames - 1) % 4 == 0.
     # 480p is the resolution the 1.3B model was trained for.
-    "short-480p":  {"width": 832, "height": 480, "num_frames": 33, "steps": 20, "fps": 16},
+    "short-480p":  {"width": 832, "height": 480, "num_frames": 33, "steps": 25, "fps": 16},
     "tiny-480p":   {"width": 832, "height": 480, "num_frames": 17, "steps": 15, "fps": 16},
+    "medium-480p": {"width": 832, "height": 480, "num_frames": 65, "steps": 25, "fps": 16},
     "long-480p":   {"width": 832, "height": 480, "num_frames": 49, "steps": 25, "fps": 16},
-    "square-480p": {"width": 480, "height": 480, "num_frames": 33, "steps": 20, "fps": 16},
-    "portrait":    {"width": 480, "height": 832, "num_frames": 33, "steps": 20, "fps": 16},
+    "square-480p": {"width": 480, "height": 480, "num_frames": 33, "steps": 25, "fps": 16},
+    "portrait":    {"width": 480, "height": 832, "num_frames": 33, "steps": 25, "fps": 16},
 }
 
 SVG_PRESETS = {

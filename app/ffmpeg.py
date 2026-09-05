@@ -80,17 +80,23 @@ def encode_video(
     return out_path
 
 
-def contact_sheet(frames: np.ndarray, out_path: Path, columns: int = 3) -> Path:
-    """Tile a few frames into one PNG.
+def contact_sheet(frames: np.ndarray, out_path: Path, columns: int = 5) -> Path:
+    """Tile sample frames into one PNG.
 
     This is what makes video usable from an agent harness: no harness can watch
     an mp4, but any of them can read a PNG and judge the result.
+    Five picks (0/25/50/75/100%) show motion better than first/middle/last.
     """
     from PIL import Image
 
     frames = _to_uint8(np.asarray(frames))
     count = frames.shape[0]
-    picks = sorted({0, count // 2, count - 1}) if count >= 3 else list(range(count))
+    if count >= 5:
+        picks = sorted({0, count // 4, count // 2, 3 * count // 4, count - 1})
+    elif count >= 3:
+        picks = sorted({0, count // 2, count - 1})
+    else:
+        picks = list(range(count))
     columns = min(columns, len(picks))
 
     tiles = [Image.fromarray(frames[i]) for i in picks]

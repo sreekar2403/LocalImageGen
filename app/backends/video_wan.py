@@ -190,18 +190,23 @@ class VideoWanBackend:
         torch.cuda.ipc_collect()
 
     def generate(self, params: dict[str, Any], progress: Progress | None = None) -> Artifact:
-        from app.ffmpeg import contact_sheet, encode_video
+        from app.ffmpeg import contact_sheet, encode_video, probe
 
-        prompt: str = params["prompt"]
+        from app.prompts import normalize_video_prompt
+
+        raw_prompt: str = params["prompt"]
+        prompt, prompt_warns = normalize_video_prompt(raw_prompt)
         negative: str = params.get("negative_prompt") or DEFAULT_NEGATIVE
         width: int = int(params.get("width") or 832)
         height: int = int(params.get("height") or 480)
-        steps: int = int(params.get("steps") or 20)
+        steps: int = int(params.get("steps") or 25)
         guidance: float = float(params.get("guidance_scale") or 5.0)
         fps: int = int(params.get("fps") or 16)
         seed = params.get("seed")
         out_path = Path(params["out_path"])
-        warnings: list[str] = list(params.get("warnings", []))
+        warnings: list[str] = list(params.get("warnings", [])) + prompt_warns
+        if params.get("negative_prompt") is None:
+            warnings.append("using default Wan negative prompt (pass negative_prompt to override)")
 
         num_frames = snap_frames(params.get("num_frames") or 33)
         if num_frames != (params.get("num_frames") or 33):
@@ -267,12 +272,22 @@ class VideoWanBackend:
         peak_mb = round(torch.cuda.max_memory_allocated() / (1024 * 1024))
 
         # --- Stage C: encode -------------------------------------------------
+        if cancelled and cancelled():
+            raise JobCancelled("cancelled before encode")
         if progress:
             progress(0.9, "encoding mp4")
         encode_video(frames, out_path, fps=fps, codec=params.get("codec") or "libx264")
 
         sheet = out_path.with_suffix(".contact.png")
-        contact_sheet(frames, sheet)
+        contact_sheet(frames, sheet, columns=5)
+
+        size_bytes = out_path.stat().st_size if out_path.is_file() else 0
+        per_frame_kb = (size_bytes / 1024 / max(num_frames, 1)) if size_bytes else 0
+        if size_bytes and per_frame_kb < 10:
+            warnings.append(
+                f"output is small ({per_frame_kb:.1f} KB/frame) — may indicate a failed encode"
+            )
+        probe_info = probe(out_path) if out_path.is_file() else {}
 
         if progress:
             progress(1.0, "done")
@@ -302,5 +317,7 @@ class VideoWanBackend:
                 "text_encode_s": round(encode_s, 1),
                 "denoise_s": round(denoise_s, 1),
                 "contact_sheet": str(sheet),
+                "probe": probe_info,
+                "bytes": size_bytes,
             },
         )

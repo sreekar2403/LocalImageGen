@@ -510,3 +510,61 @@ def normalize_klein_prompt(prompt: str) -> tuple[str, list[str]]:
             "(klein 60-140 word budget for 4 steps)"
         )
     return clean, warnings
+
+
+# --- video prompt normalization (Wan2.1-T2V-1.3B) ------------------------------
+
+_VIDEO_QUALITY_TAGS = {
+    "masterpiece", "best quality", "ultra detailed", "8k", "4k",
+    "trending on artstation", "octane render", "unreal engine",
+}
+
+_MOTION_VERBS = {
+    "drift", "flow", "pan", "tilt", "orbit", "zoom", "walk", "run",
+    "fly", "swim", "fall", "rise", "turn", "spin", "sway", "glide",
+    "move", "moves", "moving", "motion", "panning", "tracking",
+}
+
+
+def normalize_video_prompt(prompt: str) -> tuple[str, list[str]]:
+    """Deterministic cleanup matching Wan2.1-T2V expectations.
+
+    Wan's UMT5 encoder truncates at 226 tokens: concrete subject + motion
+    verb + camera move + lighting in 40-120 words adheres best. Quality-tag
+    salad and dialogue/text-in-frame requests are warned, not silently kept.
+    Returns (clean_prompt, warnings).
+    """
+    import re
+
+    warnings: list[str] = []
+    clean = " ".join((prompt or "").strip().split())
+    if not clean:
+        return clean, warnings
+
+    lowered = clean.lower()
+    for tag in sorted(_VIDEO_QUALITY_TAGS):
+        if tag in lowered:
+            warnings.append(f"removed quality tag {tag!r} (wan resolves motion, not tags)")
+    for tag in sorted(_VIDEO_QUALITY_TAGS, key=len, reverse=True):
+        clean = re.sub(re.escape(tag), "", clean, flags=re.IGNORECASE)
+
+    if not any(v in clean.lower() for v in _MOTION_VERBS):
+        warnings.append(
+            "no motion verb detected — wan is a motion model; add one "
+            "(e.g. drifting, panning, orbiting, walking)"
+        )
+    if re.search(r'\b(say|says|speaking|dialogue|subtitle|text:"|".*")', clean, re.IGNORECASE):
+        warnings.append("dialogue/text-in-frame requested — wan renders motion, not legible text")
+
+    clean = re.sub(r"\s*,\s*", ", ", clean)
+    clean = re.sub(r"\s{2,}", " ", clean).strip(" ,.")
+    words = clean.split()
+    if len(words) > 120:
+        cut = " ".join(words[:120])
+        period = cut.rfind(".")
+        clean = cut[: period + 1] if period > 60 else cut
+        warnings.append(f"truncated {len(words)} -> {len(clean.split())} words (wan 40-120w budget)")
+    return clean, warnings
+
+
+VIDEO_PROMPT_RULES = """Wan2.1-T2V video prompts: concrete subject + motion verb + camera move + lighting, 40-120 words, positive-only. Name the motion (drifting, panning, orbiting), the camera (static tripod, slow push-in, aerial), and the light. No dialogue, no legible text-in-frame unless the shot demands it."""

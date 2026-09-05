@@ -63,13 +63,42 @@ def test_encode_rejects_wrong_shape(tmp_path):
         encode_video(np.zeros((4, 8, 8)), tmp_path / "bad.mp4")
 
 
-def test_contact_sheet_tiles_first_middle_last(tmp_path):
+def test_contact_sheet_tiles_five_samples(tmp_path):
     from PIL import Image
 
     sheet = contact_sheet(_frames(count=9, h=64, w=96), tmp_path / "sheet.png")
     assert sheet.is_file()
-    # 3 picks (first, middle, last) laid out in one row of 96px tiles
+    # 5 picks (0/25/50/75/100%) laid out in one row of 96px tiles
+    assert Image.open(sheet).size == (96 * 5, 64)
+
+
+def test_contact_sheet_short_clip_uses_three(tmp_path):
+    from PIL import Image
+
+    sheet = contact_sheet(_frames(count=3, h=64, w=96), tmp_path / "s3.png")
     assert Image.open(sheet).size == (96 * 3, 64)
+
+
+def test_video_prompt_strips_tags_and_warns_motion():
+    from app.prompts import normalize_video_prompt
+
+    clean, warns = normalize_video_prompt("a cat, masterpiece 8k")
+    assert "masterpiece" not in clean and "8k" not in clean
+    assert any("motion" in w for w in warns)
+
+
+def test_video_prompt_keeps_motion():
+    from app.prompts import normalize_video_prompt
+
+    clean, warns = normalize_video_prompt("a paper boat drifting down a gutter, slow push-in, overcast light")
+    assert "drifting" in clean
+    assert not any("motion" in w for w in warns)
+
+
+def test_medium_preset_valid():
+    cfg = VIDEO_PRESETS["medium-480p"]
+    assert cfg["width"] % 16 == 0 and cfg["height"] % 16 == 0
+    assert (cfg["num_frames"] - 1) % 4 == 0
 
 
 def test_contact_sheet_handles_short_clips(tmp_path):
