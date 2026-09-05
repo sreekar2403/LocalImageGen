@@ -230,3 +230,5 @@ mem/
 .playwright-mcp/
 test_qwen*
 /test_qwen*
+# Local agent working docs (specs, plans) — never commit
+docs/superpowers/

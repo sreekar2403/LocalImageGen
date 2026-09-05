@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
 <title>LocalGen</title>
 <style>
+  /* ─── Design tokens (shadcn/zinc-inspired, self-contained, offline-first) ─── */
   :root {
     --bg: #fafafa;
     --surface: #ffffff;
@@ -17,7 +19,6 @@
     --text-tertiary: #a1a1aa;
     --accent: #18181b;
     --accent-hover: #000000;
-    --accent-soft: #f4f4f5;
     --accent-contrast: #ffffff;
     --success: #16a34a;
     --success-bg: #f0fdf4;
@@ -25,16 +26,44 @@
     --danger-bg: #fef2f2;
     --warning: #b45309;
     --warning-bg: #fffbeb;
-    --user-bg: #18181b;
-    --user-text: #fafafa;
+    --info: #2563eb;
+    --info-bg: #eff6ff;
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 10px;
     --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
     --shadow-md: 0 6px 20px rgba(0,0,0,.08);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,.16);
     --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     --transition: 120ms ease;
+    --ring: #a1a1aa;
+  }
+  [data-theme="dark"] {
+    --bg: #09090b;
+    --surface: #111114;
+    --surface-2: #1b1b1f;
+    --surface-3: #27272c;
+    --border: #27272c;
+    --border-light: #1f1f24;
+    --text: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+    --accent: #fafafa;
+    --accent-hover: #e4e4e7;
+    --accent-contrast: #09090b;
+    --success: #4ade80;
+    --success-bg: #052e16;
+    --danger: #f87171;
+    --danger-bg: #450a0a;
+    --warning: #fbbf24;
+    --warning-bg: #451a03;
+    --info: #60a5fa;
+    --info-bg: #172554;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-md: 0 6px 20px rgba(0,0,0,.5);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,.6);
+    --ring: #71717a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -46,68 +75,123 @@
     flex-direction: column;
     -webkit-font-smoothing: antialiased;
   }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+  }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  /* ─── Primitives: button / input / badge / card ─── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font: 600 12.5px/1 var(--font);
+    padding: 0 14px; height: 36px;
+    cursor: pointer; transition: background var(--transition), border-color var(--transition);
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--text-tertiary); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn svg { width: 14px; height: 14px; }
+  .btn-primary { background: var(--accent); color: var(--accent-contrast); border-color: transparent; }
+  .btn-primary:hover { background: var(--accent-hover); border-color: transparent; }
+  .btn-ghost { border-color: transparent; background: transparent; color: var(--text-secondary); }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--text); border-color: transparent; }
+  .btn-danger-ghost { border-color: transparent; background: transparent; color: var(--danger); }
+  .btn-danger-ghost:hover { background: var(--danger-bg); }
+  .btn-sm { height: 28px; padding: 0 10px; font-size: 11.5px; border-radius: var(--radius-sm); }
+  .icon-btn {
+    flex: 0 0 auto; width: 36px; height: 36px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer; display: grid; place-items: center;
+    transition: all var(--transition); position: relative;
+  }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .icon-btn:hover { border-color: var(--text-tertiary); color: var(--text); }
+  .icon-btn.active { border-color: var(--text); color: var(--text); background: var(--surface-2); }
+  .icon-btn .count-badge {
+    position: absolute; top: -6px; right: -6px;
+    min-width: 17px; height: 17px; padding: 0 4px;
+    border-radius: 10px; background: var(--accent); color: var(--accent-contrast);
+    font-size: 10px; font-weight: 700; display: grid; place-items: center;
+  }
+  .input, .select, .textarea {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12.5px; font-family: var(--font);
+    transition: border-color var(--transition);
+  }
+  .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--text-tertiary); }
+  .textarea { resize: none; line-height: 1.5; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px; border-radius: 5px;
+    background: var(--surface-2); color: var(--text-secondary);
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-danger { background: var(--danger-bg); color: var(--danger); }
+  .badge-warning { background: var(--warning-bg); color: var(--warning); }
+  .badge-info { background: var(--info-bg); color: var(--info); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .kbd {
+    font-family: var(--mono); font-size: 11px;
+    border: 1px solid var(--border); border-bottom-width: 2px;
+    border-radius: 4px; padding: 0 5px; background: var(--surface-2);
+  }
 
   /* ─── Header ─── */
   header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: flex; align-items: center; gap: 10px;
     padding: 11px 22px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    position: sticky; top: 0; z-index: 100;
   }
   .logo { display: flex; align-items: center; gap: 8px; }
   .logo svg { width: 18px; height: 18px; color: var(--text); flex-shrink: 0; }
-  header h1 {
-    font-size: 13.5px;
-    font-weight: 600;
-    letter-spacing: -0.1px;
-  }
+  header h1 { font-size: 13.5px; font-weight: 600; letter-spacing: -0.1px; }
+  .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
   .status-pill {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11.5px;
-    font-weight: 500;
-    background: var(--surface-2);
-    color: var(--text-secondary);
-    font-family: var(--mono);
+    display: flex; align-items: center; gap: 7px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 500;
+    background: var(--surface-2); color: var(--text-secondary);
+    font-family: var(--mono); max-width: 280px;
   }
-  .status-pill .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--text-tertiary);
-    transition: background var(--transition);
-  }
-  .status-pill.ok { color: #166534; }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
+  .status-pill.ok { color: var(--success); }
   .status-pill.ok .dot { background: var(--success); }
   .status-pill.bad { color: var(--danger); }
   .status-pill.bad .dot { background: var(--danger); }
+  .status-pill span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* ─── Mode Tabs ─── */
+  /* ─── Mode tabs ─── */
   .mode-bar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0 22px;
-    background: var(--surface);
+    display: flex; align-items: center; gap: 4px;
+    padding: 0 22px; background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
   .mode-tab {
-    padding: 9px 4px;
-    margin-right: 18px;
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    border: none;
-    background: transparent;
+    padding: 9px 4px; margin-right: 18px;
+    font-size: 12.5px; font-weight: 500; color: var(--text-secondary);
+    cursor: pointer; border: none; background: transparent;
     border-bottom: 2px solid transparent;
     transition: color var(--transition), border-color var(--transition);
     user-select: none;
@@ -117,390 +201,214 @@
 
   /* ─── Messages ─── */
   #messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    flex: 1; overflow-y: auto; padding: 22px;
+    display: flex; flex-direction: column; gap: 16px;
   }
-  .msg {
-    display: flex;
-    gap: 10px;
-    max-width: 760px;
-    width: 100%;
-    margin: 0 auto;
-    animation: fadeIn 150ms ease;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  .msg { display: flex; gap: 10px; max-width: 760px; width: 100%; margin: 0 auto; animation: fadeIn 150ms ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   .msg .avatar {
-    flex: 0 0 22px; height: 22px;
-    border-radius: 5px;
+    flex: 0 0 22px; height: 22px; border-radius: 5px;
     display: grid; place-items: center;
-    font-size: 10px; font-weight: 700;
-    margin-top: 2px;
-    letter-spacing: 0.2px;
+    font-size: 10px; font-weight: 700; margin-top: 2px; letter-spacing: 0.2px;
   }
   .msg.user .avatar { background: var(--accent); color: var(--accent-contrast); }
   .msg.assistant .avatar { background: var(--surface-3); color: var(--text-secondary); }
-  .bubble {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 11px 14px;
-    flex: 1;
-    min-width: 0;
-  }
-  .msg.user .bubble {
-    background: var(--surface-2);
-    border-color: var(--border);
-  }
-  .bubble .text {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    line-height: 1.6;
-  }
+  .bubble { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 11px 14px; flex: 1; min-width: 0; }
+  .msg.user .bubble { background: var(--surface-2); }
+  .bubble .text { white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; }
   .cmd-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text);
-    background: var(--surface-3);
-    padding: 2px 7px;
-    border-radius: 5px;
-    margin-bottom: 6px;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    color: var(--text); background: var(--surface-3);
+    padding: 2px 7px; border-radius: 5px; margin-bottom: 6px;
   }
-  .thumbs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
-  }
+  .thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .thumbs img, .thumbs .file {
-    height: 56px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-light);
-    object-fit: cover;
-    background: var(--surface-2);
+    height: 56px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light); object-fit: cover; background: var(--surface-2);
   }
-  .thumbs .file {
-    display: grid; place-items: center;
-    padding: 0 12px;
-    font-size: 11px;
-    color: var(--text-secondary);
-  }
+  .thumbs .file { display: grid; place-items: center; padding: 0 12px; font-size: 11px; color: var(--text-secondary); }
 
-  /* ─── Result Card ─── */
-  .result {
-    margin-top: 8px;
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    border: 1px solid var(--border);
-    background: var(--surface);
-  }
-  .result img, .result video {
-    width: 100%;
-    display: block;
-    background: var(--surface-2);
-  }
+  /* ─── Result card ─── */
+  .result { margin-top: 8px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); background: var(--surface); }
+  .result img, .result video { width: 100%; display: block; background: var(--surface-2); }
   .result .meta {
-    padding: 8px 12px;
-    font-size: 11.5px;
-    color: var(--text-secondary);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 12px;
-    align-items: center;
-    border-top: 1px solid var(--border-light);
-    font-family: var(--mono);
+    padding: 8px 12px; font-size: 11.5px; color: var(--text-secondary);
+    display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
+    border-top: 1px solid var(--border-light); font-family: var(--mono);
   }
-  .result .meta .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 7px;
-    border-radius: 5px;
-    background: var(--surface-2);
+  .result .actions { display: flex; gap: 6px; margin-left: auto; font-family: var(--font); }
+  .result details.source { border-top: 1px solid var(--border-light); }
+  .result details.source summary {
+    cursor: pointer; padding: 7px 12px; font-size: 11.5px; font-weight: 600;
+    color: var(--text-secondary); font-family: var(--mono); list-style: none;
   }
-  .result .meta a {
-    color: var(--text);
-    text-decoration: none;
-    font-weight: 600;
-    margin-left: auto;
+  .result details.source summary:hover { color: var(--text); }
+  .result details.source pre {
+    margin: 0; padding: 10px 12px; max-height: 220px; overflow: auto;
+    font: 11px/1.5 var(--mono); color: var(--text-secondary);
+    border-top: 1px solid var(--border-light); white-space: pre-wrap; word-break: break-all;
   }
-  .result .meta a:hover { text-decoration: underline; }
   .progress { margin-top: 8px; }
-  .progress .bar {
-    height: 4px;
-    background: var(--surface-2);
-    border-radius: 4px;
-    overflow: hidden;
+  .progress .bar { height: 4px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .progress .bar > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 4px; transition: width .4s ease; }
+  .progress .label { font-size: 11.5px; color: var(--text-secondary); margin-top: 6px; font-family: var(--mono); }
+  .progress .row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .skeleton {
+    border-radius: var(--radius-md); background: var(--surface-2);
+    background-image: linear-gradient(100deg, transparent 30%, var(--surface-3) 50%, transparent 70%);
+    background-size: 200% 100%; animation: shimmer 1.2s infinite linear;
+    min-height: 180px;
   }
-  .progress .bar > i {
-    display: block;
-    height: 100%;
-    width: 0;
-    background: var(--accent);
-    border-radius: 4px;
-    transition: width .4s ease;
-  }
-  .progress .label {
-    font-size: 11.5px;
-    color: var(--text-secondary);
-    margin-top: 6px;
-    font-family: var(--mono);
-  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 1s linear infinite; }
   .warn { color: var(--warning); font-size: 12px; margin-top: 6px; }
   .err { color: var(--danger); font-size: 12.5px; margin-top: 6px; }
 
-  /* ─── Empty State ─── */
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    gap: 10px;
-    color: var(--text-tertiary);
-    padding: 40px;
-  }
+  /* ─── Empty state ─── */
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 10px; color: var(--text-tertiary); padding: 40px; }
   .empty-state svg { width: 30px; height: 30px; color: var(--text-tertiary); margin-bottom: 4px; }
-  .empty-state h2 {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-secondary);
-  }
-  .empty-state p {
-    font-size: 12.5px;
-    text-align: center;
-    max-width: 380px;
-    line-height: 1.6;
-  }
-  .empty-state .hint {
-    margin-top: 6px;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--text-tertiary);
-  }
+  .empty-state h2 { font-size: 15px; font-weight: 600; color: var(--text-secondary); }
+  .empty-state p { font-size: 12.5px; text-align: center; max-width: 380px; line-height: 1.6; }
+  .empty-state .hint { margin-top: 6px; font-family: var(--mono); font-size: 11.5px; color: var(--text-tertiary); text-align: center; }
   .empty-state .hint b { color: var(--text-secondary); font-weight: 600; }
+  .empty-state .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
 
-  /* ─── Footer / Composer ─── */
+  /* ─── Footer / composer ─── */
   footer { background: var(--surface); border-top: 1px solid var(--border); position: relative; }
-
-  /* Settings Panel */
-  .settings-panel {
-    display: none;
-    padding: 14px 22px;
-    border-bottom: 1px solid var(--border-light);
-    background: var(--surface-2);
-  }
+  .settings-panel { display: none; padding: 14px 22px; border-bottom: 1px solid var(--border-light); background: var(--surface-2); }
   .settings-panel.open { display: block; }
-  .settings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 12px;
-    max-width: 760px;
-    margin: 0 auto;
-  }
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  .field label {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-  .field input, .field select {
-    padding: 7px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    color: var(--text);
-    font-size: 12.5px;
-    font-family: var(--font);
-    transition: border-color var(--transition);
-  }
-  .field input:focus, .field select:focus {
-    outline: none;
-    border-color: var(--text-tertiary);
-  }
+  .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; max-width: 760px; margin: 0 auto; }
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .field > label { font-size: 10.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
   .field .row { display: flex; gap: 8px; }
   .field .row input { flex: 1; min-width: 0; }
+  .field .hint-text { font-size: 11px; color: var(--text-tertiary); }
+  input[type="color"].input { padding: 2px 4px; height: 34px; cursor: pointer; }
   .toggle-row { display: flex; align-items: center; gap: 9px; padding-top: 4px; }
   .toggle {
-    position: relative;
-    width: 34px; height: 20px;
-    appearance: none;
-    background: var(--surface-3);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background var(--transition);
-    flex-shrink: 0;
+    position: relative; width: 34px; height: 20px; appearance: none;
+    background: var(--surface-3); border-radius: 12px; cursor: pointer;
+    transition: background var(--transition); flex-shrink: 0; border: none; margin: 0;
   }
   .toggle::after {
-    content: '';
-    position: absolute;
-    top: 2px; left: 2px;
-    width: 16px; height: 16px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform var(--transition);
-    box-shadow: var(--shadow-sm);
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; background: #fff; border-radius: 50%;
+    transition: transform var(--transition); box-shadow: var(--shadow-sm);
   }
   .toggle:checked { background: var(--accent); }
   .toggle:checked::after { transform: translateX(14px); }
   .toggle-label { font-size: 12.5px; color: var(--text-secondary); }
-
-  /* Platform selector */
   .platform-row { grid-column: 1 / -1; }
   .platform-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .platform-chip {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11.5px;
-    font-weight: 500;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all var(--transition);
-    white-space: nowrap;
+    padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+    cursor: pointer; transition: all var(--transition); white-space: nowrap;
   }
   .platform-chip:hover { border-color: var(--text-tertiary); color: var(--text); }
   .platform-chip.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
 
-  /* Composer */
   .composer-wrap { padding: 12px 22px 14px; position: relative; }
   .composer { display: flex; gap: 8px; align-items: flex-end; max-width: 760px; margin: 0 auto; }
   .composer .side-btns { display: flex; gap: 6px; }
-  .composer .icon-btn {
-    flex: 0 0 auto;
-    width: 36px; height: 36px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-secondary);
-    cursor: pointer;
-    display: grid; place-items: center;
-    transition: all var(--transition);
-  }
-  .composer .icon-btn svg { width: 16px; height: 16px; }
-  .composer .icon-btn:hover { border-color: var(--text-tertiary); color: var(--text); }
-  .composer .icon-btn.active { border-color: var(--text); color: var(--text); background: var(--surface-2); }
   .composer textarea {
-    flex: 1;
-    resize: none;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 9px 12px;
-    font: 13.5px/1.5 var(--font);
-    max-height: 160px;
-    min-height: 36px;
+    flex: 1; background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 9px 12px; font: 13.5px/1.5 var(--font);
+    max-height: 160px; min-height: 36px;
     transition: border-color var(--transition);
   }
   .composer textarea:focus { outline: none; border-color: var(--text-tertiary); }
   .composer textarea::placeholder { color: var(--text-tertiary); }
-  .composer .send {
-    flex: 0 0 auto;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 0 16px;
-    height: 36px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 12.5px;
-    font-family: var(--font);
-    transition: background var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-  .composer .send:hover { background: var(--accent-hover); }
-  .composer .send:disabled { opacity: .45; cursor: default; }
-  .composer .send svg { width: 14px; height: 14px; }
-
+  .composer-foot { display: flex; align-items: center; gap: 10px; max-width: 760px; margin: 6px auto 0; }
+  .word-count { font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); }
+  .word-count.over { color: var(--warning); font-weight: 600; }
   .chips { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; max-width: 760px; margin-left: auto; margin-right: auto; }
   .chip {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    border-radius: 20px;
-    padding: 3px 5px 3px 10px;
-    font-size: 11.5px;
-    font-weight: 500;
-    display: inline-flex;
-    gap: 5px;
-    align-items: center;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 20px; padding: 3px 5px 3px 10px; font-size: 11.5px; font-weight: 500;
+    display: inline-flex; gap: 5px; align-items: center;
   }
   .chip button {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 13px;
-    line-height: 1;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    transition: background var(--transition);
+    background: none; border: none; color: var(--text-secondary); cursor: pointer;
+    font-size: 13px; line-height: 1; width: 18px; height: 18px; border-radius: 50%;
+    display: grid; place-items: center; transition: background var(--transition);
   }
   .chip button:hover { background: var(--surface-3); color: var(--text); }
 
   /* ─── Command palette ─── */
   .cmd-palette {
-    display: none;
-    position: absolute;
-    left: 22px; right: 22px;
-    bottom: 100%;
-    margin-bottom: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    max-width: 760px;
-    margin-left: auto;
-    margin-right: auto;
-    overflow: hidden;
-    z-index: 50;
+    display: none; position: absolute; left: 22px; right: 22px; bottom: 100%;
+    margin-bottom: 8px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+    max-width: 760px; margin-left: auto; margin-right: auto; overflow: hidden; z-index: 50;
   }
   .cmd-palette.open { display: block; }
   .cmd-palette-list { max-height: 260px; overflow-y: auto; padding: 6px; }
-  .cmd-item {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-  }
-  .cmd-item.active { background: var(--surface-2); }
+  .cmd-item { display: flex; align-items: baseline; gap: 10px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; }
+  .cmd-item.active, .cmd-item:hover { background: var(--surface-2); }
   .cmd-item .name { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--text); flex: 0 0 auto; }
   .cmd-item .desc { font-size: 12px; color: var(--text-secondary); }
   .cmd-palette-empty { padding: 14px; font-size: 12.5px; color: var(--text-tertiary); text-align: center; }
 
-  /* SVG-specific group */
+  /* ─── Jobs drawer ─── */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; }
+  .overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 92vw);
+    background: var(--surface); border-left: 1px solid var(--border);
+    box-shadow: var(--shadow-lg); z-index: 201;
+    transform: translateX(102%); transition: transform 180ms ease;
+    display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: none; }
+  .drawer header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border); position: static;
+  }
+  .drawer header h2 { font-size: 13.5px; font-weight: 600; }
+  .drawer header .icon-btn { width: 30px; height: 30px; margin-left: auto; }
+  .drawer-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .job { padding: 10px 12px; }
+  .job .top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .job .id { font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+  .job .msg-line { font-size: 11.5px; color: var(--text-secondary); font-family: var(--mono); margin-top: 6px; }
+  .job .bar { height: 4px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .job .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s ease; }
+  .job .row { display: flex; gap: 6px; margin-top: 8px; }
+  .drawer-empty { text-align: center; color: var(--text-tertiary); font-size: 12.5px; padding: 32px 12px; }
+
+  /* ─── Toasts ─── */
+  .toast-region {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 8px; z-index: 300;
+    width: min(420px, calc(100vw - 32px));
+  }
+  .toast {
+    display: flex; align-items: flex-start; gap: 9px;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md); padding: 10px 12px; font-size: 12.5px;
+    animation: fadeIn 150ms ease;
+  }
+  .toast .t-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; background: var(--info); }
+  .toast-success .t-dot { background: var(--success); }
+  .toast-error .t-dot { background: var(--danger); }
+  .toast-warning .t-dot { background: var(--warning); }
+  .toast button { margin-left: auto; background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; line-height: 1; }
+
   .grp { display: none; }
   .grp.show { display: contents; }
 
-  /* Scrollbar */
-  #messages::-webkit-scrollbar, .cmd-palette-list::-webkit-scrollbar { width: 6px; }
-  #messages::-webkit-scrollbar-track, .cmd-palette-list::-webkit-scrollbar-track { background: transparent; }
-  #messages::-webkit-scrollbar-thumb, .cmd-palette-list::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+  #messages::-webkit-scrollbar, .cmd-palette-list::-webkit-scrollbar, .drawer-list::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
 
   @media (max-width: 640px) {
     header { padding: 10px 14px; }
+    .status-pill { max-width: 150px; }
     .mode-bar { padding: 0 14px; overflow-x: auto; }
     #messages { padding: 14px; }
     .composer-wrap { padding: 10px 14px 12px; }
@@ -509,6 +417,8 @@
     .settings-grid { grid-template-columns: 1fr 1fr; }
     .msg { gap: 8px; }
     .bubble { padding: 10px 12px; }
+    .composer .send-label { display: none; }
+    .composer .btn-primary { padding: 0 12px; }
   }
 </style>
 </head>
@@ -516,71 +426,169 @@
 
 <header>
   <div class="logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5-9 9"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5-9 9"/></svg>
     <h1>LocalGen</h1>
   </div>
-  <div class="status-pill" id="statusPill">
-    <span class="dot" id="statusDot"></span>
-    <span id="statusText">connecting</span>
+  <div class="header-actions">
+    <button class="icon-btn" id="themeBtn" title="Toggle dark mode" aria-label="Toggle dark mode">
+      <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4"/></svg>
+    </button>
+    <button class="icon-btn" id="jobsBtn" title="Background jobs" aria-label="Open background jobs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+      <span class="count-badge" id="jobsBadge" style="display:none">0</span>
+    </button>
+    <div class="status-pill" id="statusPill" role="status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">connecting</span>
+    </div>
   </div>
 </header>
 
-<div class="mode-bar">
-  <button class="mode-tab active" data-mode="image">Image</button>
-  <button class="mode-tab" data-mode="ref">Image + Ref</button>
-  <button class="mode-tab" data-mode="svg">SVG</button>
-  <button class="mode-tab" data-mode="video">Video</button>
-</div>
+<nav class="mode-bar" role="tablist" aria-label="Generation mode">
+  <button class="mode-tab active" data-mode="image" role="tab" aria-selected="true">Image</button>
+  <button class="mode-tab" data-mode="ref" role="tab" aria-selected="false">Image + Ref</button>
+  <button class="mode-tab" data-mode="svg" role="tab" aria-selected="false">SVG</button>
+  <button class="mode-tab" data-mode="video" role="tab" aria-selected="false">Video</button>
+</nav>
 
-<div id="messages">
-  <div class="empty-state">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5-9 9"/></svg>
-    <h2>What would you like to create?</h2>
-    <p>Generate images, SVGs, or videos from text prompts. Attach reference images for editing.</p>
-    <div class="hint">Type <b>/</b> in the box for quick edit commands like <b>/marketing</b> or <b>/explode</b></div>
+<main id="messages" aria-live="off">
+  <div class="empty-state" id="emptyState">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5-9 9"/></svg>
+    <h2 id="emptyTitle">What would you like to create?</h2>
+    <p id="emptyDesc">Generate images, SVGs, or videos from text prompts. Attach reference images for editing.</p>
+    <div class="quick-actions" id="quickActions"></div>
+    <div class="hint">Type <span class="kbd">/</span> for edit commands &middot; <span class="kbd">Enter</span> to send &middot; <span class="kbd">Esc</span> closes panels</div>
   </div>
-</div>
+</main>
 
 <footer>
   <div class="settings-panel" id="settingsPanel">
     <div class="settings-grid" id="settingsGrid"></div>
   </div>
   <div class="composer-wrap">
-    <div class="cmd-palette" id="cmdPalette">
+    <div class="cmd-palette" id="cmdPalette" role="listbox" aria-label="Edit commands">
       <div class="cmd-palette-list" id="cmdPaletteList"></div>
     </div>
     <div class="composer">
       <div class="side-btns">
-        <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Toggle settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4m-9.5-11H1m22 0h-1.5m-2.7-7.8 1.1-1.1M4.1 19.9l1.1-1.1m0-13.4L4.1 4.1m15.8 15.8-1.1-1.1"/></svg>
+        <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Toggle settings" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1Z"/></svg>
         </button>
-        <button class="icon-btn" id="attachBtn" title="Attach image(s)" style="display:none">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21.4 11.6 12.4 20.6a5 5 0 0 1-7-7l9.6-9.6a3.3 3.3 0 0 1 4.7 4.7L10 18.1a1.7 1.7 0 0 1-2.3-2.3l8.4-8.4"/></svg>
+        <button class="icon-btn" id="attachBtn" title="Attach image(s)" aria-label="Attach reference images" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M21.4 11.6 12.4 20.6a5 5 0 0 1-7-7l9.6-9.6a3.3 3.3 0 0 1 4.7 4.7L10 18.1a1.7 1.7 0 0 1-2.3-2.3l8.4-8.4"/></svg>
         </button>
       </div>
-      <input type="file" id="fileInput" multiple accept="image/*" hidden>
-      <textarea id="prompt" rows="1" placeholder="Describe what you want to generate, or type / for commands..."></textarea>
-      <button class="send" id="sendBtn">
-        Generate
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+      <input type="file" id="fileInput" multiple accept="image/*" hidden aria-hidden="true" tabindex="-1">
+      <textarea id="prompt" rows="1" placeholder="Describe what you want to generate, or type / for commands..." aria-label="Prompt"></textarea>
+      <button class="btn btn-primary" id="sendBtn">
+        <span class="send-label">Generate</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
       </button>
     </div>
-    <div class="chips" id="chips"></div>
+    <div class="composer-foot">
+      <span class="word-count" id="wordCount"></span>
+    </div>
+    <div class="chips" id="chips" aria-live="polite"></div>
   </div>
 </footer>
 
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="jobsDrawer" aria-label="Background jobs" aria-hidden="true">
+  <header>
+    <h2>Background jobs</h2>
+    <button class="icon-btn" id="jobsClose" aria-label="Close jobs panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </header>
+  <div class="drawer-list" id="jobsList"></div>
+</aside>
+
+<div class="toast-region" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
 <script>
+"use strict";
 const $ = (s) => document.querySelector(s);
 const messages = $("#messages");
-const state = { attachments: [], mode: "image" };
+const state = { attachments: [], mode: "image", platform: "default", jobsTimer: null };
 
 function fileUrl(absPath) { return "/file?p=" + encodeURIComponent(absPath); }
 function escapeHtml(s) { return (s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
 function scrollBottom() { messages.scrollTop = messages.scrollHeight; }
+function shortModel(m) { return (m || "").split("/").pop() || "worker"; }
+
+/* ─── Theme ─── */
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("localgen-theme", t); } catch (e) {}
+  $("#themeIconMoon").style.display = t === "dark" ? "none" : "";
+  $("#themeIconSun").style.display = t === "dark" ? "" : "none";
+}
+(function initTheme() {
+  let t = "light";
+  try { t = localStorage.getItem("localgen-theme") || t; } catch (e) {}
+  if (!localStorage.getItem("localgen-theme") && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) t = "dark";
+  setTheme(t);
+})();
+$("#themeBtn").addEventListener("click", () => {
+  setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
+
+/* ─── Toasts ─── */
+function toast(msg, type) {
+  const region = $("#toasts");
+  const el = document.createElement("div");
+  el.className = "toast" + (type ? " toast-" + type : "");
+  el.setAttribute("role", type === "error" ? "alert" : "status");
+  el.innerHTML = `<span class="t-dot"></span><span>${escapeHtml(msg)}</span><button aria-label="Dismiss">&times;</button>`;
+  el.querySelector("button").onclick = () => el.remove();
+  region.appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 200); }, 4500);
+  while (region.children.length > 4) region.firstChild.remove();
+}
+
+function copyText(text, label) {
+  const done = () => toast((label || "Copied") + " to clipboard", "success");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => toast("Copy failed", "error"));
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { toast("Copy failed", "error"); }
+    ta.remove();
+  }
+}
 
 function removeEmptyState() {
-  const e = messages.querySelector(".empty-state");
+  const e = $("#emptyState");
   if (e) e.remove();
+}
+
+const EMPTY_COPY = {
+  image: ["What would you like to create?", "FLUX.2-klein-4B · 4 steps · prompts auto-matched to 60–140 words of plain prose."],
+  ref: ["Edit an image", "Attach a reference image, then describe the change — or type / for a quick command."],
+  svg: ["What should the vector look like?", "Author mode writes real paths (icons, logos, diagrams). Trace mode vectorizes a FLUX render (artwork, stickers)."],
+  video: ["Describe a short clip", "Wan2.1 needs a subject + motion verb + camera move. Runs in the background — track it under Jobs."],
+};
+const QUICK_PROMPTS = {
+  image: ["a lighthouse at dusk, waves breaking on rocks", "a brass telescope on a wooden desk, warm lamplight"],
+  ref: ["/enhance-detail", "/marketing"],
+  svg: ["a rocket icon, flat minimal glyph", "a fox mascot sticker, front facing"],
+  video: ["a paper boat drifting down a rain gutter, slow push-in", "clouds timelapsing over a mountain ridge, static tripod"],
+};
+
+function renderEmptyState() {
+  const title = $("#emptyTitle"), desc = $("#emptyDesc"), qa = $("#quickActions");
+  if (!title) return;
+  const c = EMPTY_COPY[state.mode] || EMPTY_COPY.image;
+  title.textContent = c[0]; desc.textContent = c[1];
+  qa.innerHTML = "";
+  for (const q of (QUICK_PROMPTS[state.mode] || [])) {
+    const b = document.createElement("button");
+    b.className = "btn btn-sm"; b.textContent = q.length > 42 ? q.slice(0, 42) + "…" : q;
+    b.title = q; b.onclick = () => { $("#prompt").value = q; updateWordCount(); $("#prompt").focus(); };
+    qa.appendChild(b);
+  }
 }
 
 function addMessage(role, text, attachments, cmdLabel) {
@@ -588,14 +596,14 @@ function addMessage(role, text, attachments, cmdLabel) {
   const el = document.createElement("div");
   el.className = "msg " + role;
   const who = role === "user" ? "You" : "AI";
-  let html = `<div class="avatar">${who}</div><div class="bubble">`;
+  let html = `<div class="avatar" aria-hidden="true">${who}</div><div class="bubble">`;
   if (cmdLabel) html += `<span class="cmd-badge">/${escapeHtml(cmdLabel)}</span>`;
   if (text) html += `<div class="text">${escapeHtml(text)}</div>`;
   if (attachments && attachments.length) {
     html += `<div class="thumbs">`;
     for (const a of attachments) {
       html += a.isImage
-        ? `<img src="${a.url}" alt="${escapeHtml(a.name)}">`
+        ? `<img src="${a.url}" alt="${escapeHtml(a.name)}" loading="lazy">`
         : `<div class="file">${escapeHtml(a.name)}</div>`;
     }
     html += `</div>`;
@@ -607,32 +615,45 @@ function addMessage(role, text, attachments, cmdLabel) {
   return el;
 }
 
+function statusBadge(status) {
+  const map = { queued: "", running: "badge-info", done: "badge-success", error: "badge-danger", cancelled: "badge-warning" };
+  return `<span class="badge ${map[status] || ""}">${escapeHtml(status)}</span>`;
+}
+
 function renderArtifact(art) {
   const wrap = document.createElement("div");
   wrap.className = "result";
   let media = "";
   if (art.kind === "video") {
-    media = `<video controls src="${fileUrl(art.path)}"></video>`;
+    media = `<video controls preload="metadata" src="${fileUrl(art.path)}"></video>`;
   } else if (art.kind === "svg") {
     const showUrl = (art.preview_path && art.preview_path !== art.path) ? fileUrl(art.preview_path) : fileUrl(art.path);
-    media = `<img src="${showUrl}" alt="svg preview">`;
+    media = `<img src="${showUrl}" alt="svg preview" loading="lazy">`;
   } else {
-    media = `<img src="${fileUrl(art.path)}" alt="generated image">`;
+    media = `<img src="${fileUrl(art.path)}" alt="generated image" loading="lazy">`;
   }
   let meta = `<div class="meta">`;
   meta += `<span class="badge">${escapeHtml(art.kind)}</span>`;
   if (art.width) meta += `<span class="badge">${art.width}&times;${art.height}</span>`;
   if (art.steps) meta += `<span class="badge">${art.steps} steps</span>`;
   if (art.seed != null) meta += `<span class="badge">seed ${art.seed}</span>`;
-  if (art.elapsed_s != null) meta += `<span class="badge">${art.elapsed_s.toFixed(1)}s</span>`;
-  meta += `<a href="${fileUrl(art.path)}" download>download</a>`;
-  if (art.kind === "svg" && art.preview_path && art.preview_path !== art.path) {
-    meta += `<a href="${fileUrl(art.path)}" download style="margin-left:8px">svg source</a>`;
-  }
+  if (art.elapsed_s != null) meta += `<span class="badge">${Number(art.elapsed_s).toFixed(1)}s</span>`;
+  if (art.quantization && art.quantization !== "none") meta += `<span class="badge">${escapeHtml(art.quantization)}</span>`;
+  meta += `<span class="actions">
+    <button class="btn btn-sm" data-act="open">Open</button>
+    <button class="btn btn-sm" data-act="copy">Copy path</button>
+    <a class="btn btn-sm" href="${fileUrl(art.path)}" download>Download</a>
+  </span>`;
   meta += `</div>`;
   let warns = "";
   for (const w of (art.warnings || [])) warns += `<div class="warn">&#9888; ${escapeHtml(w)}</div>`;
-  wrap.innerHTML = media + meta + warns;
+  let src = "";
+  if (art.text && art.text.length <= 12000) {
+    src = `<details class="source"><summary>View SVG source (${art.text.length} chars)</summary><pre>${escapeHtml(art.text)}</pre></details>`;
+  }
+  wrap.innerHTML = media + meta + warns + src;
+  wrap.querySelector('[data-act="open"]').onclick = () => window.open(fileUrl(art.path), "_blank", "noopener");
+  wrap.querySelector('[data-act="copy"]').onclick = () => copyText(art.path, "Path");
   return wrap;
 }
 
@@ -640,19 +661,23 @@ function setBusy(busy) {
   const btn = $("#sendBtn");
   btn.disabled = busy;
   btn.innerHTML = busy
-    ? `Working...<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="spin"><path d="M12 2v4m0 12v4m-8-10H0m24 0h-4m-3.5-6.5 2.8-2.8M4.7 19.3l2.8-2.8m0-13.4L4.7 4.7m14.8 14.8-2.8-2.8"/></svg>`
-    : `Generate<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>`;
+    ? `Working...<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="spin" aria-hidden="true"><path d="M12 2v4m0 12v4m-8-10H0m24 0h-4m-3.5-6.5 2.8-2.8M4.7 19.3l2.8-2.8m0-13.4L4.7 4.7m14.8 14.8-2.8-2.8"/></svg>`
+    : `<span class="send-label">Generate</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>`;
 }
 
 async function uploadFiles(files) {
   for (const f of files) {
     const fd = new FormData();
     fd.append("file", f);
-    const r = await fetch("/v1/upload", { method: "POST", body: fd });
-    if (!r.ok) { alert("Upload failed: " + (await r.text())); continue; }
-    const j = await r.json();
-    const isImage = (f.type || "").startsWith("image/");
-    state.attachments.push({ path: j.path, name: j.filename, url: fileUrl(j.path), isImage });
+    try {
+      const r = await fetch("/v1/upload", { method: "POST", body: fd });
+      if (!r.ok) { toast("Upload failed: " + (await r.text()), "error"); continue; }
+      const j = await r.json();
+      const isImage = (f.type || "").startsWith("image/");
+      state.attachments.push({ path: j.path, name: j.filename, url: fileUrl(j.path), isImage });
+    } catch (e) {
+      toast("Upload failed: " + e.message, "error");
+    }
   }
   renderChips();
 }
@@ -663,13 +688,13 @@ function renderChips() {
   state.attachments.forEach((a, i) => {
     const chip = document.createElement("span");
     chip.className = "chip";
-    chip.innerHTML = `${escapeHtml(a.name)} <button title="remove">&times;</button>`;
+    chip.innerHTML = `${escapeHtml(a.name)} <button title="Remove attachment" aria-label="Remove ${escapeHtml(a.name)}">&times;</button>`;
     chip.querySelector("button").onclick = () => { state.attachments.splice(i, 1); renderChips(); };
     c.appendChild(chip);
   });
 }
 
-/* ─── Slash commands: quick edit templates, à la Claude Code / Codex ─── */
+/* ─── Slash commands: quick edit templates ─── */
 const COMMANDS = [
   { cmd: "marketing", label: "Marketing", desc: "Polished ad-ready creative",
     base: "Transform this into a polished marketing creative: professional studio lighting, bold clean composition, vibrant on-brand color grading, ample negative space for copy, high-end advertising-photography look." },
@@ -723,6 +748,8 @@ function renderPalette() {
   paletteMatches.forEach((c, i) => {
     const item = document.createElement("div");
     item.className = "cmd-item" + (i === paletteIndex ? " active" : "");
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", i === paletteIndex ? "true" : "false");
     item.innerHTML = `<span class="name">/${c.cmd}</span><span class="desc">${escapeHtml(c.desc)}</span>`;
     item.onmousedown = (e) => { e.preventDefault(); pickCommand(c); };
     paletteList.appendChild(item);
@@ -732,6 +759,7 @@ function renderPalette() {
 function pickCommand(c) {
   $("#prompt").value = "/" + c.cmd + " ";
   closePalette();
+  updateWordCount();
   $("#prompt").focus();
 }
 
@@ -748,6 +776,19 @@ function updatePalette() {
   renderPalette();
 }
 
+/* ─── Word-count budget hint ─── */
+const WORD_BUDGETS = { image: 140, ref: 140, video: 120, svg: 0 };
+function updateWordCount() {
+  const el = $("#wordCount");
+  const text = $("#prompt").value.trim();
+  const n = text ? text.split(/\s+/).length : 0;
+  const budget = WORD_BUDGETS[state.mode] || 0;
+  if (!budget) { el.textContent = n ? `${n} words` : ""; el.classList.remove("over"); return; }
+  const name = state.mode === "video" ? "wan 40–120" : "klein 60–140";
+  el.textContent = n ? `${n} words · ${name}` : `${name} words work best`;
+  el.classList.toggle("over", n > budget);
+}
+
 /* ─── Settings panels per mode ─── */
 const PLATFORMS = {
   "default": { label: "1:1", w: 1024, h: 1024 },
@@ -762,26 +803,43 @@ const PLATFORMS = {
   "linkedin": { label: "1.88:1", w: 1024, h: 544, icon: "in" },
   "whatsapp": { label: "9:16", w: 576, h: 1024, icon: "WA" },
 };
+const VIDEO_PRESETS_UI = [
+  ["tiny-480p", "tiny-480p · 17f (fastest)"],
+  ["short-480p", "short-480p · 33f (~2s)"],
+  ["long-480p", "long-480p · 49f (~3s)"],
+  ["medium-480p", "medium-480p · 65f (~4s)"],
+  ["square-480p", "square-480p"],
+  ["portrait", "portrait"],
+];
+
+function field(labelText, innerHtml, forId) {
+  const d = document.createElement("div");
+  d.className = "field";
+  d.innerHTML = `<label${forId ? ` for="${forId}"` : ""}>${labelText}</label>${innerHtml}`;
+  return d;
+}
 
 function buildSettingsPanel(mode) {
   const grid = $("#settingsGrid");
   grid.innerHTML = "";
 
   if (mode === "image" || mode === "ref") {
-    // Platform selector
-    const pDiv = document.createElement("div");
-    pDiv.className = "field platform-row";
-    pDiv.innerHTML = `<label>Platform Preset</label><div class="platform-chips" id="platformChips"></div>`;
+    const pDiv = field("Platform Preset", `<div class="platform-chips" id="platformChips" role="group" aria-label="Platform preset"></div>`);
+    pDiv.classList.add("platform-row");
     grid.appendChild(pDiv);
     const chips = pDiv.querySelector("#platformChips");
     for (const [key, p] of Object.entries(PLATFORMS)) {
       const c = document.createElement("button");
-      c.className = "platform-chip" + (key === "default" ? " active" : "");
+      c.type = "button";
+      c.className = "platform-chip" + (key === state.platform ? " active" : "");
       c.dataset.platform = key;
+      c.setAttribute("aria-pressed", key === state.platform ? "true" : "false");
       c.innerHTML = `${p.icon ? `<span style="font-weight:700;margin-right:2px">${p.icon}</span>` : ""}${p.label}`;
+      c.title = key;
       c.onclick = () => {
-        chips.querySelectorAll(".platform-chip").forEach(x => x.classList.remove("active"));
+        chips.querySelectorAll(".platform-chip").forEach(x => { x.classList.remove("active"); x.setAttribute("aria-pressed", "false"); });
         c.classList.add("active");
+        c.setAttribute("aria-pressed", "true");
         $("#dimW").value = p.w;
         $("#dimH").value = p.h;
         state.platform = key;
@@ -789,122 +847,56 @@ function buildSettingsPanel(mode) {
       chips.appendChild(c);
     }
 
-    // Dimensions
-    const dDiv = document.createElement("div");
-    dDiv.className = "field";
-    dDiv.innerHTML = `<label>Dimensions</label><div class="row"><input type="number" id="dimW" value="1024" min="256" max="1024" step="16" placeholder="Width"><input type="number" id="dimH" value="1024" min="256" max="1024" step="16" placeholder="Height"></div>`;
-    grid.appendChild(dDiv);
+    grid.appendChild(field("Dimensions", `<div class="row"><input class="input" type="number" id="dimW" value="1024" min="256" max="1024" step="16" placeholder="Width" aria-label="Width"><input class="input" type="number" id="dimH" value="1024" min="256" max="1024" step="16" placeholder="Height" aria-label="Height"></div>`));
+    grid.appendChild(field("Steps", `<input class="input" type="number" id="steps" value="4" min="1" max="12">`, "steps"));
+    grid.appendChild(field("Seed", `<input class="input" type="number" id="seed" placeholder="random">`, "seed"));
 
-    // Steps
-    const sDiv = document.createElement("div");
-    sDiv.className = "field";
-    sDiv.innerHTML = `<label>Steps</label><input type="number" id="steps" value="4" min="1" max="50">`;
-    grid.appendChild(sDiv);
-
-    // Seed
-    const seedDiv = document.createElement("div");
-    seedDiv.className = "field";
-    seedDiv.innerHTML = `<label>Seed</label><input type="number" id="seed" placeholder="random">`;
-    grid.appendChild(seedDiv);
-
-    // Text Overlay
-    const tDiv = document.createElement("div");
-    tDiv.className = "field";
+    const tDiv = field("Text Overlay", `<input class="input" type="text" id="textOverlay" placeholder="e.g. Running 27B on 8GB VRAM">`, "textOverlay");
     tDiv.style.gridColumn = "1 / -1";
-    tDiv.innerHTML = `<label>Text Overlay</label><input type="text" id="textOverlay" placeholder="e.g. Running 27B on 8GB VRAM">`;
     grid.appendChild(tDiv);
 
-    // Text Position
-    const tpDiv = document.createElement("div");
-    tpDiv.className = "field";
-    tpDiv.innerHTML = `<label>Text Position</label><select id="textPosition"><option value="bottom">Bottom</option><option value="top">Top</option><option value="center">Center</option><option value="top-left">Top Left</option><option value="top-right">Top Right</option><option value="bottom-left">Bottom Left</option><option value="bottom-right">Bottom Right</option></select>`;
-    grid.appendChild(tpDiv);
+    grid.appendChild(field("Text Position", `<select class="select" id="textPosition"><option value="bottom">Bottom</option><option value="top">Top</option><option value="center">Center</option><option value="top-left">Top Left</option><option value="top-right">Top Right</option><option value="bottom-left">Bottom Left</option><option value="bottom-right">Bottom Right</option></select>`, "textPosition"));
+    grid.appendChild(field("Text Color", `<input class="input" type="color" id="textColor" value="#FFFFFF">`, "textColor"));
+    grid.appendChild(field("Font Size", `<input class="input" type="number" id="textFontSize" value="48" min="8" max="200">`, "textFontSize"));
+    grid.appendChild(field("Enhance", `<div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt + suggest overlay</span></div>`));
 
-    // Text Color
-    const tcDiv = document.createElement("div");
-    tcDiv.className = "field";
-    tcDiv.innerHTML = `<label>Text Color</label><input type="color" id="textColor" value="#FFFFFF">`;
-    grid.appendChild(tcDiv);
-
-    // Text Font Size
-    const tfDiv = document.createElement("div");
-    tfDiv.className = "field";
-    tfDiv.innerHTML = `<label>Font Size</label><input type="number" id="textFontSize" value="48" min="8" max="200">`;
-    grid.appendChild(tfDiv);
-
-    // Enhance
-    const eDiv = document.createElement("div");
-    eDiv.className = "field";
-    eDiv.innerHTML = `<label>Enhance</label><div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt + suggest overlay</span></div>`;
-    grid.appendChild(eDiv);
-
-    // Reference image hint for edit mode
     if (mode === "ref") {
-      const hint = document.createElement("div");
-      hint.className = "field";
+      const hint = field("Reference", `<p class="hint-text" style="margin:0">Attach images with the paperclip button, then describe the edit (or type <span class="kbd">/</span> for a command).</p>`);
       hint.style.gridColumn = "1 / -1";
-      hint.innerHTML = `<label>Reference</label><p style="font-size:12.5px;color:var(--text-secondary);margin:0">Attach images using the paperclip button, then describe the edit you want (or type / for a command).</p>`;
       grid.appendChild(hint);
     }
   } else if (mode === "svg") {
-    const kindDiv = document.createElement("div");
-    kindDiv.className = "field";
-    kindDiv.innerHTML = `<label>Kind</label><select id="svgKind"><option value="icon">Icon</option><option value="logo">Logo</option><option value="diagram">Diagram</option><option value="chart">Chart</option><option value="illustration">Illustration</option></select>`;
-    grid.appendChild(kindDiv);
-
-    const modeDiv = document.createElement("div");
-    modeDiv.className = "field";
-    modeDiv.innerHTML = `<label>Mode</label><select id="svgMode"><option value="author">Author (LLM writes SVG)</option><option value="trace">Trace (FLUX + vectorize)</option></select>`;
-    grid.appendChild(modeDiv);
-
-    const colDiv = document.createElement("div");
-    colDiv.className = "field";
-    colDiv.innerHTML = `<label>Colors</label><input type="number" id="colors" value="12" min="2" max="64">`;
-    grid.appendChild(colDiv);
-
-    const seedDiv = document.createElement("div");
-    seedDiv.className = "field";
-    seedDiv.innerHTML = `<label>Seed</label><input type="number" id="seed" placeholder="random">`;
-    grid.appendChild(seedDiv);
-
-    const eDiv = document.createElement("div");
-    eDiv.className = "field";
-    eDiv.innerHTML = `<label>Enhance</label><div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt with local LLM</span></div>`;
-    grid.appendChild(eDiv);
+    grid.appendChild(field("Kind", `<select class="select" id="svgKind"><option value="icon">Icon</option><option value="logo">Logo</option><option value="diagram">Diagram</option><option value="chart">Chart</option><option value="illustration">Illustration</option></select>`, "svgKind"));
+    grid.appendChild(field("Mode", `<select class="select" id="svgMode"><option value="author">Author (LLM writes SVG)</option><option value="trace">Trace (FLUX + vectorize)</option></select>`, "svgMode"));
+    grid.appendChild(field("Colors", `<input class="input" type="number" id="colors" value="12" min="2" max="64">`, "colors"));
+    grid.appendChild(field("Seed", `<input class="input" type="number" id="seed" placeholder="random">`, "seed"));
+    grid.appendChild(field("Enhance", `<div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt with local LLM</span></div>`));
   } else if (mode === "video") {
-    const presetDiv = document.createElement("div");
-    presetDiv.className = "field";
-    presetDiv.innerHTML = `<label>Preset</label><select id="preset"><option value="short-480p">short-480p (1.3s)</option><option value="tiny-480p">tiny-480p (0.7s)</option><option value="long-480p">long-480p (2.0s)</option><option value="square-480p">square-480p</option><option value="portrait">portrait</option></select>`;
-    grid.appendChild(presetDiv);
-
-    const sDiv = document.createElement("div");
-    sDiv.className = "field";
-    sDiv.innerHTML = `<label>Steps</label><input type="number" id="steps" value="20" min="1" max="50">`;
-    grid.appendChild(sDiv);
-
-    const seedDiv = document.createElement("div");
-    seedDiv.className = "field";
-    seedDiv.innerHTML = `<label>Seed</label><input type="number" id="seed" placeholder="random">`;
-    grid.appendChild(seedDiv);
-
-    const eDiv = document.createElement("div");
-    eDiv.className = "field";
-    eDiv.innerHTML = `<label>Enhance</label><div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt with local LLM</span></div>`;
-    grid.appendChild(eDiv);
+    const opts = VIDEO_PRESETS_UI.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+    grid.appendChild(field("Preset", `<select class="select" id="preset">${opts}</select>`, "preset"));
+    grid.appendChild(field("Steps", `<input class="input" type="number" id="steps" value="25" min="1" max="50">`, "steps"));
+    grid.appendChild(field("Seed", `<input class="input" type="number" id="seed" placeholder="random">`, "seed"));
+    grid.appendChild(field("Enhance", `<div class="toggle-row"><input type="checkbox" class="toggle" id="enhance"><span class="toggle-label">Expand prompt with local LLM</span></div>`));
   }
-
-  state.platform = "default";
 }
 
 function setMode(mode) {
   state.mode = mode;
-  document.querySelectorAll(".mode-tab").forEach(t => t.classList.toggle("active", t.dataset.mode === mode));
+  document.querySelectorAll(".mode-tab").forEach(t => {
+    const active = t.dataset.mode === mode;
+    t.classList.toggle("active", active);
+    t.setAttribute("aria-selected", active ? "true" : "false");
+  });
   $("#attachBtn").style.display = (mode === "ref") ? "" : "none";
   $("#prompt").placeholder = mode === "ref"
     ? "Describe the edit you want, or type / for a command..."
-    : "Describe what you want to generate, or type / for commands...";
+    : mode === "video"
+      ? "Describe a short clip: subject + motion + camera move..."
+      : "Describe what you want to generate, or type / for commands...";
   buildSettingsPanel(mode);
+  updateWordCount();
   closePalette();
+  if ($("#emptyState")) renderEmptyState();
 }
 
 // ─── Send ───
@@ -913,6 +905,7 @@ async function send() {
   const mode = state.mode;
   const attaches = state.attachments.slice();
   if (!raw && !(mode === "ref" && attaches.length)) return;
+  if (mode === "ref" && !attaches.length) { toast("Attach a reference image first (paperclip button)", "warning"); return; }
 
   let text = raw;
   let cmdLabel = null;
@@ -965,8 +958,12 @@ async function send() {
     } catch (e) {
       // Enhancement failed, use original prompt
       promptText = text;
+      toast("Enhancement failed, using original prompt", "warning");
     }
-    bubble.innerHTML = `<div class="text">Generating...</div>`;
+    bubble.innerHTML = `<div class="skeleton"></div><div class="text">Generating...</div>`;
+    scrollBottom();
+  } else {
+    bubble.innerHTML = `<div class="skeleton"></div><div class="text">Generating...</div>`;
     scrollBottom();
   }
 
@@ -1028,25 +1025,44 @@ async function send() {
       bubble.innerHTML = "";
       const prog = document.createElement("div");
       prog.className = "progress";
-      prog.innerHTML = `<div class="bar"><i></i></div><div class="label">queued...</div>`;
+      prog.innerHTML = `<div class="bar"><i></i></div><div class="label">queued...</div><div class="row"></div>`;
       bubble.appendChild(prog);
       const bar = prog.querySelector("i");
       const label = prog.querySelector(".label");
+      const row = prog.querySelector(".row");
       const jobId = data.job_id;
+      toast(`Video job ${jobId} queued — track it under Jobs`, "info");
+      refreshJobsBadge();
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "btn btn-sm btn-danger-ghost";
+      cancelBtn.textContent = "Cancel job";
+      cancelBtn.onclick = async () => {
+        await fetch(`/jobs/${jobId}/cancel`, { method: "POST" });
+        toast(`Cancel requested for ${jobId}`, "warning");
+      };
+      row.appendChild(cancelBtn);
       const poll = async () => {
-        const jr = await fetch("/jobs/" + jobId);
-        const job = await jr.json();
-        const pct = Math.round((job.progress || 0) * 100);
-        bar.style.width = pct + "%";
-        label.textContent = `${job.status} · ${pct}%${job.progress_msg ? " · " + job.progress_msg : ""}`;
-        if (job.status === "done") {
-          bubble.innerHTML = "";
-          if (job.result) bubble.appendChild(renderArtifact(job.result));
-          else bubble.textContent = "Done.";
-        } else if (job.status === "error" || job.status === "cancelled") {
-          bubble.innerHTML = `<div class="err">${escapeHtml(job.error || job.status)}</div>`;
-        } else {
-          setTimeout(poll, 1500);
+        try {
+          const jr = await fetch("/jobs/" + jobId);
+          const job = await jr.json();
+          const pct = Math.round((job.progress || 0) * 100);
+          bar.style.width = pct + "%";
+          label.textContent = `${job.status} · ${pct}%${job.progress_msg ? " · " + job.progress_msg : ""}`;
+          if (job.status === "done") {
+            bubble.innerHTML = "";
+            if (job.result) bubble.appendChild(renderArtifact(job.result));
+            else bubble.textContent = "Done.";
+            toast(`Video job ${jobId} done`, "success");
+            refreshJobsBadge();
+          } else if (job.status === "error" || job.status === "cancelled") {
+            bubble.innerHTML = `<div class="err">${escapeHtml(job.error || job.status)}</div>`;
+            refreshJobsBadge();
+          } else {
+            setTimeout(poll, 1500);
+          }
+        } catch (e) {
+          label.textContent = "poll failed, retrying...";
+          setTimeout(poll, 3000);
         }
       };
       poll();
@@ -1056,12 +1072,93 @@ async function send() {
     }
   } catch (e) {
     bubble.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
+    toast(e.message, "error");
   } finally {
     setBusy(false);
     $("#prompt").value = "";
+    $("#prompt").style.height = "auto";
+    updateWordCount();
     state.attachments = [];
     renderChips();
     scrollBottom();
+  }
+}
+
+// ─── Jobs drawer ───
+const drawer = $("#jobsDrawer");
+const overlay = $("#overlay");
+
+function openJobs() {
+  drawer.classList.add("open");
+  overlay.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+  refreshJobs();
+  state.jobsTimer = setInterval(refreshJobs, 3000);
+  $("#jobsClose").focus();
+}
+function closeJobs() {
+  drawer.classList.remove("open");
+  overlay.classList.remove("open");
+  drawer.setAttribute("aria-hidden", "true");
+  if (state.jobsTimer) { clearInterval(state.jobsTimer); state.jobsTimer = null; }
+  $("#jobsBtn").focus();
+}
+$("#jobsBtn").addEventListener("click", openJobs);
+$("#jobsClose").addEventListener("click", closeJobs);
+overlay.addEventListener("click", closeJobs);
+
+async function refreshJobsBadge() {
+  try {
+    const r = await fetch("/jobs?limit=20");
+    const jobs = await r.json();
+    const active = jobs.filter(j => j.status === "queued" || j.status === "running").length;
+    const badge = $("#jobsBadge");
+    badge.style.display = active ? "" : "none";
+    badge.textContent = active;
+  } catch (e) { /* badge is best-effort */ }
+}
+
+async function refreshJobs() {
+  const list = $("#jobsList");
+  try {
+    const r = await fetch("/jobs?limit=20");
+    const jobs = await r.json();
+    if (!jobs.length) { list.innerHTML = `<div class="drawer-empty">No jobs yet. Video generations appear here.</div>`; return; }
+    list.innerHTML = "";
+    for (const j of jobs) {
+      const el = document.createElement("div");
+      el.className = "job card";
+      const pct = Math.round((j.progress || 0) * 100);
+      el.innerHTML = `<div class="top"><span class="id">${escapeHtml(j.id)}</span>${statusBadge(j.status)}<span class="badge">${escapeHtml(j.kind)}</span></div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="msg-line">${pct}%${j.progress_msg ? " · " + escapeHtml(j.progress_msg) : ""}${j.elapsed_s != null ? " · " + j.elapsed_s + "s" : ""}</div>
+        <div class="row"></div>`;
+      const row = el.querySelector(".row");
+      if (j.status === "queued" || j.status === "running") {
+        const c = document.createElement("button");
+        c.className = "btn btn-sm btn-danger-ghost"; c.textContent = "Cancel";
+        c.onclick = async () => { await fetch(`/jobs/${j.id}/cancel`, { method: "POST" }); refreshJobs(); refreshJobsBadge(); };
+        row.appendChild(c);
+      }
+      if (j.status === "done" && j.result) {
+        const v = document.createElement("button");
+        v.className = "btn btn-sm"; v.textContent = "View result";
+        v.onclick = () => {
+          closeJobs();
+          const m = addMessage("assistant", `Result of job ${j.id}:`);
+          m.querySelector(".bubble").appendChild(renderArtifact(j.result));
+        };
+        row.appendChild(v);
+      }
+      if (j.status === "error" && j.error) {
+        const e = document.createElement("div");
+        e.className = "err"; e.textContent = j.error;
+        el.appendChild(e);
+      }
+      list.appendChild(el);
+    }
+  } catch (e) {
+    list.innerHTML = `<div class="drawer-empty">Could not load jobs: ${escapeHtml(e.message)}</div>`;
   }
 }
 
@@ -1071,28 +1168,43 @@ async function refreshStatus() {
     const r = await fetch("/health");
     const h = await r.json();
     const pill = $("#statusPill");
-    const dot = $("#statusDot");
-    const text = $("#statusText");
-    pill.className = "status-pill " + (h.loaded ? "ok" : "bad");
+    pill.classList.remove("ok", "bad");
+    pill.classList.add(h.loaded ? "ok" : "bad");
     const q = h.quantization && h.quantization !== "none" ? ` · ${h.quantization}` : "";
-    text.textContent = `${h.model}${q} · ${h.loaded ? "ready" : "not loaded"}`;
+    const vram = h.vram_total_mb ? ` · VRAM ${h.vram_free_mb}/${h.vram_total_mb} MiB` : "";
+    const resident = h.resident_backend ? ` · ${h.resident_backend}` : "";
+    const label = `${shortModel(h.model)}${q} · ${h.loaded ? "ready" : "not loaded"}`;
+    $("#statusText").textContent = label;
+    pill.title = `${h.model}${q}${vram}${resident} · swaps=${h.swaps ?? 0} · idle=${h.idle_s ?? 0}s`;
   } catch (e) {
     const pill = $("#statusPill");
-    pill.className = "status-pill bad";
+    pill.classList.remove("ok");
+    pill.classList.add("bad");
     $("#statusText").textContent = "worker unreachable";
+    pill.title = "GET /health failed";
   }
 }
 
 // ─── Wiring ───
 document.querySelectorAll(".mode-tab").forEach(tab => {
   tab.addEventListener("click", () => setMode(tab.dataset.mode));
+  tab.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      const tabs = [...document.querySelectorAll(".mode-tab")];
+      let i = tabs.indexOf(tab) + (e.key === "ArrowRight" ? 1 : -1);
+      i = (i + tabs.length) % tabs.length;
+      tabs[i].focus(); setMode(tabs[i].dataset.mode);
+    }
+  });
 });
 
 $("#settingsBtn").addEventListener("click", () => {
   const panel = $("#settingsPanel");
   const btn = $("#settingsBtn");
   panel.classList.toggle("open");
-  btn.classList.toggle("active");
+  const open = panel.classList.contains("open");
+  btn.classList.toggle("active", open);
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
 });
 
 $("#attachBtn").addEventListener("click", () => $("#fileInput").click());
@@ -1114,18 +1226,28 @@ $("#prompt").addEventListener("input", function () {
   this.style.height = "auto";
   this.style.height = Math.min(this.scrollHeight, 160) + "px";
   updatePalette();
+  updateWordCount();
 });
 document.addEventListener("click", (e) => {
   if (!palette.contains(e.target) && e.target !== $("#prompt")) closePalette();
 });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (drawer.classList.contains("open")) closeJobs();
+    else if (palette.classList.contains("open")) closePalette();
+  }
+  if (e.key === "/" && document.activeElement !== $("#prompt") && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+    e.preventDefault();
+    $("#prompt").focus();
+  }
+});
 
 setMode("image");
+renderEmptyState();
 refreshStatus();
+refreshJobsBadge();
 setInterval(refreshStatus, 15000);
+setInterval(refreshJobsBadge, 15000);
 </script>
-<style>
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spin { animation: spin 1s linear infinite; }
-</style>
 </body>
 </html>
