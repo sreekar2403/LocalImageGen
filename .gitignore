@@ -228,4 +228,5 @@ bench_results/
 mem/
 .hive-worktrees/
 .playwright-mcp/
-test_*
+test_qwen*
+/test_qwen*
