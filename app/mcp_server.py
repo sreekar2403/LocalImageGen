@@ -78,16 +78,16 @@ def _image_summary(art: dict[str, Any]) -> str:
 def build_server():
     from mcp.server import MCPServer
 
-    mcp = MCPServer(
+mcp = MCPServer(
         "LocalGen",
         instructions=(
             "Local image, SVG and short-video generation on this machine "
-            "(FLUX.2-klein-4B, Wan2.1-T2V-1.3B, and a local LLM). "
+            "(FLUX.2-klein for generation and editing, Wan2.1-T2V-1.3B, and a local LLM). "
             "Tools return file paths; use your file reader to view an image. "
-            "guidance_scale and negative_prompt are accepted but IGNORED because the "
-            "image model is distilled."
+            "generate_image uses guidance_scale; edit_image uses image_guidance_scale. "
+            "Both run ~4 steps (klein is distilled, no CFG)."
         ),
-    )
+)
 
     @mcp.tool()
     def generate_image(
@@ -96,22 +96,28 @@ def build_server():
         width: Optional[int] = None,
         height: Optional[int] = None,
         steps: int = 4,
+        guidance_scale: Optional[float] = None,
+        negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         path: Optional[str] = None,
         enhance: bool = False,
         style: Optional[str] = None,
     ) -> str:
-        """Generate an image locally with FLUX.2-klein-4B and return its file path.
+        """Generate an image locally with FLUX.2-klein.
 
-        Takes roughly 10-15s. `platform` picks preset dimensions (youtube, reels,
-        instagram, ...). Set `enhance` to expand the prompt with a local LLM first.
+        FLUX.2-klein is a distilled model: classifier-free guidance is disabled,
+        so guidance_scale and negative_prompt have NO effect. Both fields are
+        accepted for API compatibility and return a warning. Never pass either
+        to the pipe — negative_prompt is not even a valid kwargs and raises
+        TypeError.
         """
         art = _call(
             "POST",
             "/v1/image",
             {
                 "prompt": prompt, "platform": platform, "width": width,
-                "height": height, "steps": steps, "seed": seed, "path": path,
+                "height": height, "steps": steps, "guidance_scale": guidance_scale,
+                "negative_prompt": negative_prompt, "seed": seed, "path": path,
                 "enhance": enhance, "style": style,
             },
         )
@@ -124,20 +130,24 @@ def build_server():
         width: Optional[int] = None,
         height: Optional[int] = None,
         steps: int = 4,
+        guidance_scale: Optional[float] = None,
+        image_guidance_scale: Optional[float] = None,
         seed: Optional[int] = None,
         path: Optional[str] = None,
     ) -> str:
-        """Edit or recombine existing images with a text instruction.
+        """Edit an image with a text instruction, via FLUX.2-klein.
 
-        FLUX.2 supports multi-reference editing: pass several paths to blend or
-        transfer style between them.
+        FLUX.2-klein is distilled: guidance_scale is ignored (no CFG).
+        image_guidance_scale is not a native FLUX knob and is ignored.
         """
         art = _call(
             "POST",
             "/v1/image/edit",
             {
                 "prompt": prompt, "image_paths": image_paths, "width": width,
-                "height": height, "steps": steps, "seed": seed, "path": path,
+                "height": height, "steps": steps, "guidance_scale": guidance_scale,
+                "image_guidance_scale": image_guidance_scale,
+                "seed": seed, "path": path,
             },
         )
         return _image_summary(art)
@@ -203,10 +213,11 @@ def build_server():
 
     @mcp.tool()
     def enhance_prompt(prompt: str, style: Optional[str] = None) -> str:
-        """Expand a short idea into a detailed image prompt using a local LLM.
+"""Expand a short idea into a detailed image prompt using a local LLM.
 
-        style: flux2 (default, prose -- correct for FLUX.2), flux, sdxl, midjourney.
-        """
+style: flux (default -- matches FLUX.2-klein), sdxl,
+flux2, qwen, midjourney.
+"""
         data = _call("POST", "/v1/enhance", {"prompt": prompt, "style": style})
         return data["prompt"]
 

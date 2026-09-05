@@ -10,8 +10,8 @@ from typing import Any
 
 from app.backends.base import Artifact
 from app.config import (
+    DEFAULT_GUIDANCE_SCALE,
     DEFAULT_STEPS,
-    MODEL_NAME,
     SVG_PRESETS,
     resolve_dimensions,
 )
@@ -27,9 +27,10 @@ def generate_image(
     steps: int | None = None,
     seed: int | None = None,
     path: str | None = None,
-    negative_prompt: str | None = None,
-    guidance_scale: float | None = None,
     reference_images: list[str] | None = None,
+    guidance_scale: float | None = None,
+    negative_prompt: str | None = None,
+    image_guidance_scale: float | None = None,
     enhance: bool = False,
     style: str | None = None,
     text_overlay: str | None = None,
@@ -57,18 +58,21 @@ def generate_image(
 
     kind = "edit" if reference_images else "image"
     out_path = resolve_output_path(path, kind)
+    # Single backend: FLUX.2-klein-4B handles generation and reference editing.
+    backend_name = "image.flux2-klein"
 
     return mgr.run(
-        "image.flux2-klein",
+        backend_name,
         {
             "prompt": prompt_used,
             "width": w,
             "height": h,
             "steps": steps or DEFAULT_STEPS,
+            "guidance_scale": guidance_scale,
+            "negative_prompt": negative_prompt,
+            "image_guidance_scale": image_guidance_scale,
             "seed": seed,
             "out_path": out_path,
-            "negative_prompt": negative_prompt,
-            "guidance_scale": guidance_scale,
             "reference_images": reference_images or [],
             "text_overlay": text_overlay,
             "text_position": text_position,
@@ -192,15 +196,20 @@ def edit_svg(svg: str, instruction: str, path: str | None = None, model: str | N
 
 
 def health() -> dict[str, Any]:
+    """Reports on whichever GPU backend is actually resident."""
+    import sys
+
     mgr = get_manager()
     status = mgr.status()
-    image = mgr.get("image.flux2-klein")
+    resident_name = status.get("resident_backend")
+    resident = mgr.get(resident_name) if resident_name else None
     return {
         "status": "ok",
-        "model": MODEL_NAME,
-        "loaded": image.loaded,
-        "quantization": getattr(image, "quantization", "none"),
-        "load_error": getattr(image, "load_error", None),
+        "worker_python": sys.executable,
+        "model": getattr(resident, "model_name", "klein") if resident else "klein",
+        "loaded": bool(resident and resident.loaded),
+        "quantization": getattr(resident, "quantization", "none") if resident else "none",
+        "load_error": getattr(resident, "load_error", None) if resident else None,
         **status,
     }
 

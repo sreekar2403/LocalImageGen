@@ -200,7 +200,6 @@ class SvgTraceBackend:
                 "steps": params.get("steps") or 4,
                 "seed": params.get("seed"),
                 "out_path": raster_path,
-                "_suppress_guidance_warning": True,
             },
         )
         warnings.extend(image_artifact.warnings)

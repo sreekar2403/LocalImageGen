@@ -87,13 +87,21 @@ class ImageRequest(BaseModel):
     platform: str = "default"
     width: Optional[int] = Field(None, ge=256, le=1024)
     height: Optional[int] = Field(None, ge=256, le=1024)
-    steps: int = Field(DEFAULT_STEPS, ge=1, le=50)
+    steps: int = Field(DEFAULT_STEPS, ge=1, le=12, description="FLUX.2-klein-4B is step-distilled; 4 is the tuned default.")
     seed: Optional[int] = None
     path: Optional[str] = None
     enhance: bool = False
     style: Optional[str] = None
-    negative_prompt: Optional[str] = Field(None, description="IGNORED on this distilled model")
-    guidance_scale: Optional[float] = Field(None, description="IGNORED on this distilled model")
+    guidance_scale: Optional[float] = Field(
+        None,
+        ge=0.1,
+        le=15.0,
+        description="Ignored on klein (no CFG, distilled). Accepted for compat; returns a warning.",
+    )
+    negative_prompt: Optional[str] = Field(
+        None,
+        description="Ignored on klein (no CFG, distilled). Accepted for compat; returns a warning.",
+    )
     text_overlay: Optional[str] = Field(None, description="Text to overlay on the generated image")
     text_position: str = Field("bottom", description="Position of text overlay: top, bottom, center, top-left, top-right, bottom-left, bottom-right")
     text_color: str = Field("#FFFFFF", description="Text color in hex format")
@@ -103,13 +111,31 @@ class ImageRequest(BaseModel):
 
 
 class EditRequest(BaseModel):
+    """Routed to FLUX.2-klein-4B native reference conditioning (single backend)."""
+
     prompt: str = Field(..., min_length=1)
-    image_paths: List[str] = Field(..., min_length=1, description="One or more reference images (FLUX.2 supports multi-reference editing)")
+    image_paths: List[str] = Field(
+        ...,
+        min_length=1,
+        description="Reference image(s). Klein conditions natively; first image used if more.",
+    )
     width: Optional[int] = Field(None, ge=256, le=1024)
     height: Optional[int] = Field(None, ge=256, le=1024)
-    steps: int = Field(DEFAULT_STEPS, ge=1, le=50)
+    steps: int = Field(DEFAULT_STEPS, ge=1, le=12, description="FLUX.2-klein-4B distilled; 4 is the tuned default.")
     seed: Optional[int] = None
     path: Optional[str] = None
+    guidance_scale: Optional[float] = Field(
+        None,
+        ge=0.1,
+        le=15.0,
+        description="Ignored on klein (no CFG). Accepted for compat, warns.",
+    )
+    image_guidance_scale: Optional[float] = Field(
+        None,
+        ge=0.1,
+        le=15.0,
+        description="Not a native klein knob. Accepted for compat, ignored with warning.",
+    )
 
 
 class SvgRequest(BaseModel):
@@ -143,7 +169,7 @@ class SvgEditRequest(BaseModel):
 
 class EnhanceRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
-    style: Optional[str] = Field(None, description="flux2 (default), flux, sdxl, midjourney")
+    style: Optional[str] = Field(None, description="flux2 (default -- matches klein's Qwen3 encoder), flux, sdxl, midjourney")
     model: Optional[str] = None
     suggest_overlays: bool = Field(False, description="Also suggest text overlay settings (text, position, color, font_size)")
 
@@ -152,6 +178,7 @@ class HealthResponse(BaseModel):
     """Keeps all five original fields; everything else is additive."""
 
     status: str
+    worker_python: Optional[str] = None
     model: str
     loaded: bool
     quantization: str

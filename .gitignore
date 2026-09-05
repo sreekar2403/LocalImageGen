@@ -226,3 +226,6 @@ opencode.json
 bench_results/
 *.raster.png
 mem/
+.hive-worktrees/
+.playwright-mcp/
+test_*

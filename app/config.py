@@ -29,27 +29,22 @@ MODEL_NAME = os.environ.get("LOCALIMAGEGEN_IMAGE_MODEL") or _override_image or _
 OLLAMA_MODEL = os.environ.get("LOCALIMAGEGEN_OLLAMA_MODEL") or _override_ollama or _DEFAULT_OLLAMA_MODEL
 VIDEO_MODEL = os.environ.get("LOCALIMAGEGEN_VIDEO_MODEL") or _DEFAULT_VIDEO_MODEL
 
+# Image generation history (see bench.md): FLUX.1-dev/Kontext-dev via GGUF was
+# tried and abandoned (sequential offload incompatible with GGUF weights);
+# SD3.5 Medium + InstructPix2Pix were measured working; Qwen-Image family was
+# prototyped. All removed: FLUX.2-klein-4B is now the single image backend.
+
 # --- generation defaults -----------------------------------------------------
 
 DEFAULT_STEPS = 4
 DEFAULT_SEED = None
 
 # FLUX.2-klein is a DISTILLED model: classifier-free guidance is disabled, so
-# `guidance_scale` and `negative_prompt` are accepted for API compatibility but
-# have NO effect. See bench.md. diffusers itself logs
-# "Guidance scale N is ignored for step-wise distilled models".
+# guidance_scale and negative_prompt have NO effect (see bench.md). The v1 API
+# and CLI no longer accept them at all. DEFAULT_GUIDANCE_SCALE survives only
+# because the legacy /generate contract (app/schemas.py: GenerateRequest) is
+# frozen byte-for-byte and still echoes a guidance_scale value in its response.
 DEFAULT_GUIDANCE_SCALE = 3.5
-GUIDANCE_IS_SUPPORTED = False
-NEGATIVE_PROMPT_IS_SUPPORTED = False
-
-WARN_GUIDANCE = (
-    "guidance_scale is ignored: FLUX.2-klein-4B is distilled, so classifier-free "
-    "guidance is disabled (is_distilled=true)."
-)
-WARN_NEGATIVE = (
-    "negative_prompt is ignored: FLUX.2-klein-4B is distilled, so negative "
-    "prompt embeddings are never applied."
-)
 
 # Latent geometry: FLUX2 requires dimensions that are multiples of 16.
 DIMENSION_MULTIPLE = 16
@@ -76,7 +71,10 @@ MIN_RESIDENCY_S = float(os.environ.get("LOCALIMAGEGEN_MIN_RESIDENCY_S", 60))
 #   ollama   -> pinned to CPU (num_gpu=0), never contends for VRAM
 LLM_PROVIDER = os.environ.get("LOCALIMAGEGEN_LLM_PROVIDER", "lmstudio").lower()
 LMSTUDIO_URL = os.environ.get("LOCALIMAGEGEN_LMSTUDIO_URL", "http://127.0.0.1:1234")
-_DEFAULT_LLM_MODEL = {"lmstudio": "qwen3.5-4b", "ollama": _DEFAULT_OLLAMA_MODEL}
+# qwen2.5-3b-instruct: best all-round sub-5B model for prompt rewriting across
+# image/SVG/video tasks -- strong instruction-following, good at structured
+# descriptive rewrites, small enough to leave VRAM for the image/video models.
+_DEFAULT_LLM_MODEL = {"lmstudio": "google/gemma-4-e4b", "ollama": "qwen2.5:3b-instruct"}
 LLM_MODEL = (
     os.environ.get("LOCALIMAGEGEN_LLM_MODEL")
     or _DEFAULT_LLM_MODEL.get(LLM_PROVIDER, _DEFAULT_OLLAMA_MODEL)

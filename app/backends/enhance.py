@@ -15,7 +15,11 @@ from app.backends.llm import chat
 from app.config import LLM_MODEL as OLLAMA_MODEL
 from app.prompts import SYSTEM_PROMPTS
 
-DEFAULT_STYLE = "flux2"
+DEFAULT_STYLE = "flux"  # matches FLUX.2-klein prompting
+
+# Maps a resolved base style to its overlay-JSON variant, so overlay
+# suggestions stay consistent with whichever style was actually used.
+_OVERLAY_VARIANTS = {"flux": "flux_overlay", "flux2": "flux2_overlay", "flux1": "flux1_overlay", "sdxl": "sdxl_overlay"}
 
 
 def resolve_style(style: str | None) -> str:
@@ -40,7 +44,8 @@ def resolve_style(style: str | None) -> str:
 
 def enhance_prompt(prompt: str, style: str | None = None, model: str | None = None, suggest_overlays: bool = False) -> dict[str, Any]:
     if suggest_overlays:
-        resolved = "flux2_overlay"
+        base = resolve_style(style)
+        resolved = _OVERLAY_VARIANTS.get(base, "sdxl_overlay")
     else:
         resolved = resolve_style(style)
     content, elapsed = chat(

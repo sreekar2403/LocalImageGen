@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 
 from app import service
 from app.config import (
-    DEFAULT_GUIDANCE_SCALE,
+    DEFAULT_GUIDANCE_SCALE,  # only for the frozen legacy /generate contract
     MODEL_NAME,
     OUTPUT_DIR,
     OUTPUT_ROOT,
@@ -44,10 +44,10 @@ from app.storage import safe_join
 app = FastAPI(
     title="LocalGen",
     description=(
-        "Local image and SVG generation (FLUX.2-klein-4B + Ollama). "
-        "One GPU-owning worker, fronted by MCP adapters for any harness."
+        "Local image and SVG generation (FLUX.2-klein for generation and editing, "
+        "plus Ollama/LM Studio). One GPU-owning worker, fronted by MCP adapters for any harness."
     ),
-    version="0.2.0",
+    version="0.3.0",
 )
 
 
@@ -68,17 +68,31 @@ def platforms():
 
 @app.get("/capabilities")
 def capabilities():
+    _cfg = __import__(
+        "app.config",
+        fromlist=["MODEL_NAME", "VIDEO_MODEL"],
+    )
     return {
         "kinds": ["image", "edit", "svg", "enhance", "video"],
-        "image_model": MODEL_NAME,
+        "image_model": {
+            "generation": MODEL_NAME,
+            "editing": MODEL_NAME,
+            "fallback": MODEL_NAME,
+            "legacy": MODEL_NAME,
+        },
         "platforms": PLATFORMS,
         "svg_presets": SVG_PRESETS,
         "svg_modes": ["author", "trace"],
         "video_presets": VIDEO_PRESETS,
-        "video_model": __import__("app.config", fromlist=["VIDEO_MODEL"]).VIDEO_MODEL,
+        "video_model": _cfg.VIDEO_MODEL,
         "notes": {
-            "guidance_scale": "ignored (distilled model)",
-            "negative_prompt": "ignored (distilled model)",
+            "guidance_scale/negative_prompt": (
+                "FLUX.2-klein is a distilled model: classifier-free guidance is disabled, "
+                "so guidance_scale and negative_prompt have NO effect (see bench.md). "
+                "Both fields are accepted for API compatibility and return a warning. "
+                "Never pass either to the pipe — negative_prompt is not even a valid "
+                "kwargs and raises TypeError."
+            ),
         },
     }
 
@@ -136,7 +150,7 @@ def v1_image(req: ImageRequest):
             service.generate_image(
                 prompt=req.prompt, platform=req.platform, width=req.width,
                 height=req.height, steps=req.steps, seed=req.seed, path=req.path,
-                negative_prompt=req.negative_prompt, guidance_scale=req.guidance_scale,
+                guidance_scale=req.guidance_scale, negative_prompt=req.negative_prompt,
                 enhance=req.enhance, style=req.style,
                 text_overlay=req.text_overlay, text_position=req.text_position,
                 text_color=req.text_color, text_bg_color=req.text_bg_color,
@@ -158,6 +172,8 @@ def v1_edit(req: EditRequest):
                 prompt=req.prompt, width=req.width, height=req.height,
                 steps=req.steps, seed=req.seed, path=req.path,
                 reference_images=req.image_paths,
+                guidance_scale=req.guidance_scale,
+                image_guidance_scale=req.image_guidance_scale,
             )
         )
     except Exception as exc:  # noqa: BLE001

@@ -146,10 +146,16 @@ class ModelManager:
                 with self._lock:
                     if self._resident is None:
                         continue
+                    # Backends may override the global timers (e.g. FLUX.1's
+                    # GGUF backends, which are far slower to reload than
+                    # klein's FP8 load and shouldn't be evicted as eagerly).
+                    backend = self._backends.get(self._resident)
+                    min_residency = getattr(backend, "min_residency_s", None) or self._min_residency_s
+                    idle_evict = getattr(backend, "idle_evict_s", None) or self._idle_evict_s
                     now = time.monotonic()
                     idle = now - self._last_used
                     resident_for = now - self._resident_since
-                    if idle < self._idle_evict_s or resident_for < self._min_residency_s:
+                    if idle < idle_evict or resident_for < min_residency:
                         continue
                 self.evict()
             except Exception:  # noqa: BLE001 - a reaper must never die
@@ -214,6 +220,7 @@ def get_manager() -> ModelManager:
 
         from app.backends.image_flux import ImageFluxBackend
 
+        # FLUX.2-klein-4B is the single image backend (FP8, 10.4s warm).
         mgr.register(ImageFluxBackend())
 
         try:
