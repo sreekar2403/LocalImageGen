@@ -25,7 +25,7 @@ from app.prompts import SVG_PROMPTS, SVG_REPAIR_PROMPT, TRACE_STYLE_SUFFIX
 from app.storage import sibling_path
 from app.svgtool import SvgError, extract, path_count, rasterize, sanitize
 
-MAX_REPAIRS = 2
+MAX_REPAIRS = 3
 
 
 def _write(out_path: Path, svg: str, png: bytes | None) -> Path | None:
@@ -67,7 +67,11 @@ class SvgAuthorBackend:
 
         system = SVG_PROMPTS.get(kind, SVG_PROMPTS["icon"])
         hint = SVG_PRESETS.get(kind, {}).get("hint", "")
-        user = f"{prompt}\n\nTarget canvas: {size}x{size}. Style: {hint}"
+        user = (
+            f"{prompt}\n\nTarget canvas: {size}x{size}. Style: {hint}\n"
+            "Budget: under 80 paths, under 15KB. Draw the subject as real "
+            "<path> geometry (never a plain rectangle standing in for it)."
+        )
 
         start = time.perf_counter()
         notes: list[str] = []
@@ -78,7 +82,7 @@ class SvgAuthorBackend:
         if progress:
             progress(0.1, f"authoring {kind} with {model or OLLAMA_MODEL}")
 
-        raw, _ = chat(system=system, user=user, model=model, temperature=0.4)
+        raw, _ = chat(system=system, user=user, model=model, temperature=0.3)
 
         while True:
             try:
@@ -159,9 +163,15 @@ class SvgTraceBackend:
     """
 
     name = "svg.trace"
-    kinds = ("svg_trace",)
+    # NOTE: service routes trace explicitly by mode, not via for_kind(),
+    # because author already claims ("svg",). Keep ("svg",) so capability
+    # listings stay honest without breaking the explicit route.
+    kinds = ("svg",)
     needs_gpu = False  # the nested image call takes the lease itself
     vram_estimate_mb = 0
+
+    # Adaptive palette by kind: icons/logos need few colours, illustrations more.
+    KIND_COLORS = {"icon": 8, "logo": 8, "diagram": 10, "chart": 10, "illustration": 14}
 
     def __init__(self, manager) -> None:
         self._manager = manager
@@ -182,7 +192,9 @@ class SvgTraceBackend:
 
         prompt: str = params["prompt"]
         size: int = int(params.get("size") or 1024)
-        colors: int = int(params.get("colors") or 12)
+        kind_hint: str = params.get("svg_kind") or "illustration"
+        default_colors = self.KIND_COLORS.get(kind_hint, 12)
+        colors: int = int(params.get("colors") or default_colors)
         out_path = Path(params["out_path"])
         warnings: list[str] = list(params.get("warnings", []))
 
@@ -215,17 +227,36 @@ class SvgTraceBackend:
             progress(0.75, "tracing to vector paths")
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        vtracer.convert_image_to_svg_py(
-            str(raster_path),
-            str(out_path),
-            colormode="color",
-            mode="spline",
-            filter_speckle=8,
-            color_precision=6,
-            path_precision=3,
-        )
 
-        raw = out_path.read_text(encoding="utf-8")
+        def _trace(mode: str, precision: int) -> str:
+            vtracer.convert_image_to_svg_py(
+                str(raster_path),
+                str(out_path),
+                colormode="color",
+                mode=mode,
+                filter_speckle=8,
+                color_precision=6,
+                path_precision=precision,
+            )
+            return out_path.read_text(encoding="utf-8")
+
+        raw = _trace("spline", 3)
+        trace_mode, trace_precision = "spline", 3
+        # Spline on a busy raster can explode past 400 paths / 100KB.
+        # Polygon fallback + lower precision keeps files hand-usable.
+        if len(raw) > 100_000 or raw.lower().count("<path") > 400:
+            warnings.append("spline trace too dense, retrying as polygon precision 2")
+            raw = _trace("polygon", 2)
+            trace_mode, trace_precision = "polygon", 2
+
+        import re as _re
+
+        # Round over-precise coordinates (M12.3456 -> M12.346) to cut bytes.
+        raw = _re.sub(
+            r"(M-?\d+\.\d{3})\d+",
+            lambda m: m.group(1),
+            raw,
+        )
         try:
             clean, notes = sanitize(raw, size, size)
             png = rasterize(clean)
@@ -266,6 +297,9 @@ class SvgTraceBackend:
                 "path_count": paths,
                 "bytes": size_bytes,
                 "colors": colors,
+                "trace_mode": trace_mode,
+                "trace_precision": trace_precision,
+                "simplified": trace_mode == "polygon",
                 "raster_path": str(image_artifact.path),
                 "notes": notes,
             },

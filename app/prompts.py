@@ -350,6 +350,36 @@ Hard requirements for the output:
 - Use plain shapes and paths so the file stays small and hand-editable.
 """
 
+_SVG_LOGO_EXAMPLE = """
+Worked example. Request: "a hexagonal fox-head logo mark".
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <path d="M32 4 56 18v28L32 60 8 46V18z" fill="#0f172a"/>
+  <path d="M22 26l6-8 4 6 4-6 6 8-4 16-6 4-6-4z" fill="#f97316"/>
+  <circle cx="27" cy="34" r="2" fill="#0f172a"/>
+  <circle cx="37" cy="34" r="2" fill="#0f172a"/>
+</svg>
+
+Note: geometric construction on a 64-grid, tight palette (2 fills),
+memorable silhouette, even optical spacing. No rect-only fallback.
+"""
+
+_SVG_DIAGRAM_EXAMPLE = """
+Worked example. Request: "a login flow diagram".
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" width="320" height="160">
+  <rect x="16" y="56" width="88" height="48" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="3"/>
+  <text x="60" y="84" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#1e3a8a">Login</text>
+  <path d="M104 80h32" stroke="#2563eb" stroke-width="3"/>
+  <path d="M130 74l8 6-8 6" fill="none" stroke="#2563eb" stroke-width="3"/>
+  <rect x="140" y="56" width="88" height="48" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/>
+  <text x="184" y="84" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#14532d">Verify</text>
+</svg>
+
+Note: grid-aligned boxes, labelled, arrows with heads, generous whitespace,
+no overlaps, restrained palette, readable at a glance.
+"""
+
 SVG_PROMPTS = {
     "icon": """You design crisp, minimal SVG icons.
 
@@ -364,6 +394,7 @@ Produce a balanced wordmark or monogram with a memorable silhouette, high
 contrast, and a tight limited palette. Favour geometric construction and even
 optical spacing.
 """
+    + _SVG_LOGO_EXAMPLE
     + _SVG_RULES,
     "diagram": """You draw clean technical diagrams as SVG.
 
@@ -371,6 +402,7 @@ Lay out labelled boxes connected by arrows. Align elements to a consistent grid,
 leave generous whitespace, keep every label readable, and never let shapes or
 text overlap. Use a restrained palette and a clear visual hierarchy.
 """
+    + _SVG_DIAGRAM_EXAMPLE
     + _SVG_RULES,
     "chart": """You draw data charts as SVG.
 
@@ -393,6 +425,9 @@ SVG_REPAIR_PROMPT = """You are repairing an SVG document that failed validation.
 You will receive the SVG source and the exact error it produced. Return a
 corrected version of the SAME artwork -- preserve the original intent, shapes and
 colours, and change only what is required to make it valid.
+
+Keep the result hand-editable: under 80 paths, under 15KB, real <path>
+geometry (never a plain rectangle standing in for the subject).
 
 Output ONLY the corrected SVG. No fences, no commentary.
 """
