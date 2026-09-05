@@ -82,10 +82,11 @@ mcp = MCPServer(
         "LocalGen",
         instructions=(
             "Local image, SVG and short-video generation on this machine "
-            "(FLUX.2-klein for generation and editing, Wan2.1-T2V-1.3B, and a local LLM). "
+            "(FLUX.2-klein-4B for generation and editing, Wan2.1-T2V-1.3B, and a local LLM). "
             "Tools return file paths; use your file reader to view an image. "
-            "generate_image uses guidance_scale; edit_image uses image_guidance_scale. "
-            "Both run ~4 steps (klein is distilled, no CFG)."
+            "Prompts are auto-normalized to klein expectations (60-140w prose, "
+            "positive-only); guidance_scale/negative_prompt are ignored with a warning. "
+            "Both run 4 steps (klein is distilled, no CFG)."
         ),
 )
 

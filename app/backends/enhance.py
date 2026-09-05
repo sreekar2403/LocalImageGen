@@ -15,11 +15,18 @@ from app.backends.llm import chat
 from app.config import LLM_MODEL as OLLAMA_MODEL
 from app.prompts import SYSTEM_PROMPTS
 
-DEFAULT_STYLE = "flux"  # matches FLUX.2-klein prompting
+DEFAULT_STYLE = "flux2"  # klein's Qwen3 encoder wants 60-140w natural prose
 
 # Maps a resolved base style to its overlay-JSON variant, so overlay
 # suggestions stay consistent with whichever style was actually used.
-_OVERLAY_VARIANTS = {"flux": "flux_overlay", "flux2": "flux2_overlay", "flux1": "flux1_overlay", "sdxl": "sdxl_overlay"}
+_OVERLAY_VARIANTS = {
+    "flux": "flux_overlay",
+    "flux2": "flux2_overlay",
+    "flux1": "flux1_overlay",
+    "sdxl": "sdxl_overlay",
+    "qwen": "qwen_overlay",
+    "midjourney": "midjourney",
+}
 
 
 def resolve_style(style: str | None) -> str:

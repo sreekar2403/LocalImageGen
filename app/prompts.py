@@ -403,3 +403,75 @@ TRACE_STYLE_SUFFIX = (
     "No gradients, no shadows, no texture, no noise, no grain. "
     "Bold simple shapes on a plain white background."
 )
+
+
+# --- klein prompt normalization (deterministic, always-on) --------------------
+
+_QUALITY_TAGS = {
+    "masterpiece", "best quality", "ultra detailed", "ultra-detailed",
+    "8k", "4k", "16k", "hd", "trending on artstation", "octane render",
+    "unreal engine", "cinematic lighting, volumetric fog",
+}
+
+_NEGATIVE_FOLDS = [
+    ("not blurry", "sharp, crisp focus"),
+    ("no blur", "sharp, crisp focus"),
+    ("without blur", "sharp, crisp focus"),
+    ("no extra fingers", "a single steady hand with five fingers"),
+    ("without extra fingers", "a single steady hand with five fingers"),
+    ("no duplicate objects", "a single instance of the subject"),
+    ("without watermark", "a clean image with no text overlay"),
+    ("no watermark", "a clean image with no text overlay"),
+]
+
+
+def normalize_klein_prompt(prompt: str) -> tuple[str, list[str]]:
+    """Deterministic cleanup matching FLUX.2-klein-4B expectations.
+
+    Klein is step-distilled (4 steps, no CFG) with a Qwen3 LLM text encoder:
+    flowing 60-140 word prose beats tag salad, and there is no negative
+    prompt — flaws must be phrased as their positive opposite.
+    Returns (clean_prompt, warnings).
+    """
+    import re
+
+    warnings: list[str] = []
+    clean = " ".join((prompt or "").strip().split())
+    if not clean:
+        return clean, warnings
+
+    lowered = clean.lower()
+    for tag in sorted(_QUALITY_TAGS):
+        if tag in lowered:
+            warnings.append(
+                f"removed quality tag {tag!r} (klein resolves 4 steps; tags add noise)"
+            )
+    for tag in sorted(_QUALITY_TAGS, key=len, reverse=True):
+        clean = re.sub(re.escape(tag), "", clean, flags=re.IGNORECASE)
+
+    for bad, good in _NEGATIVE_FOLDS:
+        if bad in clean.lower():
+            clean = re.sub(re.escape(bad), good, clean, flags=re.IGNORECASE)
+            warnings.append(
+                f"rewrote {bad!r} as positive {good!r} (klein has no negative prompt)"
+            )
+    # Lone "no X" / "without X" that we have no fold for: warn, keep text.
+    for m in re.finditer(r"\b(no|without|not)\s+[a-z-]{3,}", clean, flags=re.IGNORECASE):
+        warnings.append(
+            f"kept exclusion {m.group(0)!r} but klein ignores negations — "
+            "consider phrasing the desired result positively"
+        )
+        break
+
+    clean = re.sub(r"\s*,\s*", ", ", clean)
+    clean = re.sub(r"\s{2,}", " ", clean).strip(" ,.")
+    words = clean.split()
+    if len(words) > 140:
+        cut = " ".join(words[:140])
+        period = cut.rfind(".")
+        clean = cut[: period + 1] if period > 80 else cut
+        warnings.append(
+            f"truncated {len(words)} -> {len(clean.split())} words "
+            "(klein 60-140 word budget for 4 steps)"
+        )
+    return clean, warnings

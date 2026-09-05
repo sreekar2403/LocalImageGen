@@ -45,7 +45,17 @@ def generate_image(
     w, h = resolve_dimensions(platform, width, height, warnings)
     mgr = get_manager()
 
-    prompt_used = prompt
+    # Deterministic klein auto-match: always on, even when enhance=false.
+    from app.prompts import normalize_klein_prompt
+
+    prompt_used, norm_warns = normalize_klein_prompt(prompt)
+    warnings.extend(norm_warns)
+    if guidance_scale is not None:
+        warnings.append("guidance_scale is ignored on klein (distilled, no CFG)")
+    if negative_prompt:
+        warnings.append("negative_prompt is ignored on klein (distilled, no CFG)")
+    if image_guidance_scale is not None:
+        warnings.append("image_guidance_scale is not a native klein knob and is ignored")
     if enhance:
         from app.backends.enhance import enhance_prompt
 
